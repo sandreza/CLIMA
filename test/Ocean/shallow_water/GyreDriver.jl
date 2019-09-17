@@ -174,8 +174,14 @@ let
 
   if test == 1
     cellsrange = 10:10
-    orderrange = 4:4
-    testval = 1.6068814534535144e-03
+    orderrange = 3:6
+    expected_errors = [5.3709539079690120e-03
+                       1.6068814534535123e-03
+                       1.5776137775453710e-03
+                       1.5775200271170146e-03 ]
+    expected_rates  = [3.2151958170128023
+                       3.2187264822448669
+                       3.2187352328892889 ]
   elseif test == 2
     cellsrange = 5:5:10
     orderrange = 3:4
@@ -184,7 +190,10 @@ let
     orderrange = 6:10
   end
 
-  errors = zeros(FT, length(cellsrange), length(orderrange))
+  K = length(cellsrange)
+  N = length(orderrange)
+
+  errors = zeros(FT, K, N)
   for (i, Ne) in enumerate(cellsrange)
     brickrange = (range(FT(0); length=Ne+1, stop=Lˣ),
                   range(FT(0); length=Ne+1, stop=Lʸ))
@@ -196,25 +205,29 @@ let
       dt = (Lˣ / c) / Ne / N^2
       @info @sprintf("\n dt = %f", dt)
       errors[i, j] = run(mpicomm, topl, ArrayType, N, dt, FT, model, test)
+      if test == 1
+        @test errors[i,j] = expected_errors[i,j]
+      end
     end
   end
 
-  @test errors[end,end] ≈ testval
-
-  #=
-  msg = ""
-  for i in length(cellsrange)-1
-    rate = log2(errors[i, end] - log2(errors[i+1, end]))
-    msg *= @sprintf("\n rate for Ne %d = %e", cellsrange[i], rate)
+  if K > 1
+    for i in 1:K-1
+      rate = log2(errors[i, end] - log2(errors[i+1, end]))
+      @info @sprintf("\n rate for Ne %d = %e", cellsrange[i], rate)
+      if test == 1
+        @test rate ≈ expected_rates[i, end]
+      end
+    end
   end
-  @info msg
 
-  msg = ""
-  for j in length(orderrange)-1
-    rate = log2(errors[end, j] - log2(errors[end, j+1]))
-    msg *= @sprintf("\n rate for N  %d = %e", orderrange[j], rate)
+  if N > 1
+    for j in 1:N-1
+      rate = log2(errors[end, j] - log2(errors[end, j+1]))
+      @info @sprintf("\n rate for N  %d = %e", orderrange[j], rate)
+      if test == 1
+        @test rate ≈ expected_rates[end, j]
+      end
+    end
   end
-  @info msg
-  =#
-
 end
