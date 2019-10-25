@@ -84,7 +84,7 @@ end
 # PARAM SELECTION #
 ###################
 DFloat = Float64
-vtkpath = "vtk_mitGCM_low_diffusion"
+vtkpath = "vtk_mitGCM_split_advection"
 
 const timeend = 400 * 60 * 60 # 4 * 365 * 86400
 const tout    = 25 * 60 * 60
@@ -98,8 +98,8 @@ const τ  = 10 * 86400
 const cʰ = sqrt(grav * H)
 const cᵛ = 0
 
-const κʰ = 1e2
-const κᵛ = 1e-4
+const κʰ = 1e-6 # 1e2
+const κᵛ = 1e-10 # 1e-4
 
 const θᴱ = 25
 const λʳ = 0 # 1 // 86400

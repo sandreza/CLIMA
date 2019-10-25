@@ -112,10 +112,10 @@ end
 
 @inline function source!(m::HB2DModel, S::Vars, Q::Vars, α::Vars,
                          σ::Vars, t::Real)
-  κ⁺ = @SVector [1/m.κʰ, 1/m.κᵛ, -0]
+  κ⁺ = @SVector [1/m.κʰ, 1/m.κᵛ, 1]
   ∇θ = κ⁺ .* σ.κ∇θ
   u = α.u
-
+  
   S.θ += u∘∇θ / 2
 
   return nothing
