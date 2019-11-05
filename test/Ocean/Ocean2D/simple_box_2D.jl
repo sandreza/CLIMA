@@ -44,9 +44,9 @@ function hb2d_init_aux!(P::SimpleBox2D, α, geom)
     θᴱ = P.θᴱ
 
     # stream function
-    # Ψ(x,y) =  (L*H/τ) * cos.(π * (x/L .- 1/2)) .* cos.(π * (y/H .+ 1/2))
-    u = -π*L/τ * cos.(π * (x/L .- 1/2)) .* sin.(π * (y/H .+ 1/2))
-    v =  π*H/τ * sin.(π * (x/L .- 1/2)) .* cos.(π * (y/H .+ 1/2))
+    # Ψ(x,y) =  (L*H/τ) * sin.(π * (x/L)) .* sin.(π * (y/H))
+    u = -π*L/τ * sin.(π * (x/L)) .* cos.(π * (y/H))
+    v =  π*H/τ * cos.(π * (x/L)) .* sin.(π * (y/H))
 
 
     # stream function
@@ -67,31 +67,24 @@ function hb2d_init_aux!(P::SimpleBox2D, α, geom)
 end
 
 function hb2d_init_state!(P::SimpleBox2D, Q, α, coords, t)
-  @inbounds x = coords[1]
   @inbounds y = coords[2]
   @inbounds H = P.H
-  @inbounds L = P.L
 
   Q.θ = 9 + 8y/H
-
-  σ = 1.0
-  x° = 3//4 * L
-  y° = -H/2
-  # Q.θ = 10 * exp(-σ * ((x - x°)^2 + (y - y°)^2))
 end
 
 ###################
 # PARAM SELECTION #
 ###################
 DFloat = Float64
-vtkpath = "vtk_mitGCM_split_advection"
+vtkpath = "vtk_stu_nodiffusion"
 
 const timeend = 400 * 60 * 60 # 4 * 365 * 86400
 const tout    = 25 * 60 * 60
 
 const N  = 4
 const Ne = (10, 10)
-const L  = 1e6
+const L  = 400 # * 1e6
 const H  = 400
 const τ  = 10 * 86400
 

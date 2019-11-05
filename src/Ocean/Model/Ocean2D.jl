@@ -64,7 +64,7 @@ end
   θ = Q.θ
   u = α.u
 
-  F.θ += u * θ / 2
+  F.θ += u * θ # / 2
 
   return nothing
 end
@@ -116,7 +116,7 @@ end
   ∇θ = κ⁺ .* σ.κ∇θ
   u = α.u
   
-  S.θ += u∘∇θ / 2
+  S.θ += u∘∇θ # / 2
 
   return nothing
 end
