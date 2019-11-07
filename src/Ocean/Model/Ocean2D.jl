@@ -8,11 +8,14 @@ using ..VariableTemplates
 using ..MPIStateArrays
 using ..PlanetParameters: grav
 
+using ..Mesh.Filters: CutoffFilter, apply!, ExponentialFilter
+using ..Mesh.Grids: polynomialorder
+
 import CLIMA.DGmethods: BalanceLaw, vars_aux, vars_state, vars_gradient,
                         vars_diffusive, vars_integrals, flux_nondiffusive!,
-                        flux_diffusive!, source!, wavespeed,
+                        flux_diffusive!, source!, wavespeed, update_aux!,
                         boundary_state!, DGModel,
-                        gradvariables!, init_aux!, init_state!,
+                        gradvariables!, init_aux!, init_state!, init_ode_param,
                         LocalGeometry, diffusive!
 
 using ..DGmethods.NumericalFluxes: Rusanov, CentralFlux, CentralGradPenalty,
@@ -64,7 +67,7 @@ end
   θ = Q.θ
   u = α.u
 
-  F.θ += u * θ # / 2
+  F.θ += u * θ / 2
 
   return nothing
 end
@@ -115,23 +118,25 @@ end
   κ⁺ = @SVector [1/m.κʰ, 1/m.κᵛ, 1]
   ∇θ = κ⁺ .* σ.κ∇θ
   u = α.u
-  
-  S.θ += u∘∇θ # / 2
+
+  S.θ += u∘∇θ / 2
 
   return nothing
 end
 
 function init_ode_param(dg::DGModel, m::HB2DModel)
-  # filter = CutoffFilter(dg.grid, div(polynomialorder(dg.grid),2))
-  filter = ExponentialFilter(dg.grid, 1, 16)
+  # filter = CutoffFilter(dg.grid, polynomialorder(dg.grid)-1)
+  filter = ExponentialFilter(dg.grid, 1, 28)
 
-  return (filter = filter)
+  return (filter = filter,)
 end
 
 function update_aux!(dg::DGModel, m::HB2DModel, Q::MPIStateArray,
                      α::MPIStateArray, t, params)
-  # apply!(Q, (1, ), dg.grid, params.filter)
-  # apply!(α, (1,2), dg.grid, params.filter)
+
+  filter = params.filter
+  # apply!(Q, (1, ), dg.grid, filter)
+  # apply!(α, (1,2), dg.grid, filter)
 
   return nothing
 end

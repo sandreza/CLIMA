@@ -58,7 +58,7 @@ function hb2d_init_aux!(P::SimpleBox2D, α, geom)
     # Ψ(x,y) =  (L*H/τ) * sin.(π * (x/L)) .* sin.(π * (y/H).^2)
     # u = -π*L/τ * sin.(π * (x/L)) .* cos.(π * (y/H).^2) * 2 * (y/H)
     # v =  π*H/τ * cos.(π * (x/L)) .* sin.(π * (y/H).^2)
-    
+
     w =  0.0
     α.u = @SVector [ u, v, w ]
 
@@ -77,14 +77,14 @@ end
 # PARAM SELECTION #
 ###################
 DFloat = Float64
-vtkpath = "vtk_stu_nodiffusion"
+vtkpath = "vtk_stu_skewsym"
 
 const timeend = 400 * 60 * 60 # 4 * 365 * 86400
-const tout    = 25 * 60 * 60
+const tout    = 5 * 60 * 60
 
 const N  = 4
 const Ne = (10, 10)
-const L  = 400 # * 1e6
+const L  = 1000000
 const H  = 400
 const τ  = 10 * 86400
 
@@ -92,7 +92,7 @@ const cʰ = sqrt(grav * H)
 const cᵛ = 0
 
 const κʰ = 1e-6 # 1e2
-const κᵛ = 1e-10 # 1e-4
+const κᵛ = 1e-12 # 1e-4
 
 const θᴱ = 25
 const λʳ = 0 # 1 // 86400
@@ -153,7 +153,7 @@ let
   mkpath(vtkpath)
 
   step = [0]
-  
+
   function do_output(step)
     outprefix = @sprintf("%s/mpirank%04d_step%04d",vtkpath,
                          MPI.Comm_rank(mpicomm), step[1])
@@ -164,9 +164,9 @@ let
 
     return nothing
   end
-  
+
   do_output(step)
-  
+
   cbvtk = GenericCallbacks.EveryXSimulationSteps(nout)  do (init=false)
     do_output(step)
     step[1] += 1
