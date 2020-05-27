@@ -1,4 +1,4 @@
-export SimpleBoxProblem, HomogeneousBox, OceanGyre
+export SimpleBoxProblem, HomogeneousBox, HeatedBox, OceanGyre
 
 ############################
 # Basic box problem        #
@@ -120,6 +120,106 @@ jet stream like windstress
 """
 @inline kinematic_stress(p::HomogeneousBox, y, ρ) =
     [(p.τₒ / ρ) * cos(y * π / p.Lʸ), -0]
+
+##########################
+# Prescribed Velocity    #
+# Temperature forcing    #
+##########################
+
+"""
+    HeatedBox <: AbstractSimpleBoxProblem
+
+Container structure for a simple box problem with temperature forcing.
+Lˣ = zonal (east-west) length
+Lʸ = meridional (north-south) length
+H  = height of the ocean
+λʳ = temperature relaxation penetration constant (meters / second)
+θᴱ = maximum surface temperature
+"""
+struct HeatedBox{T, BC} <: AbstractSimpleBoxProblem
+    Lˣ::T
+    Lʸ::T
+    H::T
+    λʳ::T
+    θᴱ::T
+    boundary_condition::BC
+    function HeatedBox{FT}(
+        Lˣ,                 # m
+        Lʸ,                 # m
+        H;                  # m
+        λʳ = FT(5 // 3600), # m/s
+        θᴱ = FT(10),        # °C
+        BC = (
+            OceanBC(Impenetrable(NoSlip()), Insulating()),
+            OceanBC(Impenetrable(NoSlip()), TemperatureFlux()),
+            OceanBC(Impenetrable(NoSlip()), TemperatureFlux()),
+        ),
+    ) where {FT <: AbstractFloat}
+        return new{FT, typeof(BC)}(Lˣ, Lʸ, H, λʳ, θᴱ, BC)
+    end
+end
+
+"""
+    ocean_init_state!(::HeatedBox)
+
+initialize u,v,η with 0 and θ linearly distributed between 9 at z=0 and 1 at z=H
+
+# Arguments
+- `p`: HeatedBox problem object, used to dispatch on and obtain ocean height H
+- `Q`: state vector
+- `A`: auxiliary state vector, not used
+- `coords`: the coordidinates
+- `t`: time to evaluate at, not used
+"""
+function ocean_init_state!(p::HeatedBox, Q, A, coords, t)
+    Q.u = @SVector [0, 0]
+    Q.η = 0
+    Q.θ = 5
+
+    return nothing
+end
+
+"""
+    temperature_flux(::HeatedBox)
+
+cool-warm north-south linear temperature gradient
+
+# Arguments
+- `p`: problem object to dispatch on and get additional parameters
+- `y`: y-coordinate in the box
+- `θ`: temperature within element on boundary
+"""
+@inline function surface_flux(p::HeatedBox, Q, A, t)
+    θ = Q.θ
+    y = A.y
+    Lʸ = p.Lʸ
+    θᴱ = p.θᴱ
+    λʳ = p.λʳ
+
+    θʳ = θᴱ * (1 - y / Lʸ)
+    return -λʳ * (θʳ - θ)
+end
+
+"""
+    temperature_flux(::HeatedBox)
+
+cool-warm north-south linear temperature gradient
+
+# Arguments
+- `p`: problem object to dispatch on and get additional parameters
+- `y`: y-coordinate in the box
+- `θ`: temperature within element on boundary
+"""
+@inline function bottom_flux(p::HeatedBox, Q, A, t)
+    θ = Q.θ
+    y = A.y
+    Lʸ = p.Lʸ
+    θᴱ = p.θᴱ
+    λʳ = p.λʳ
+
+    θʳ = θᴱ * (1 - y / Lʸ)
+    return λʳ * (θʳ - θ)
+end
 
 ##########################
 # Homogenous wind stress #
