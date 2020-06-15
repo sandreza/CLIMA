@@ -60,14 +60,16 @@ this computation is done pointwise at each nodal point
 - `t`: time, not used
 """
 @inline function compute_gradient_argument!(
-    m::LinearHBModel,
+    lm::LinearHBModel,
     G::Vars,
     Q::Vars,
     A,
     t,
 )
     G.∇u = Q.u
-    G.∇θ = Q.θ
+
+    G.∇θʰ = sqrt(lm.ocean.κʰ) * Q.θ
+    G.∇θᶻ = sqrt(A.κᶻ) * Q.θ
 
     return nothing
 end
@@ -97,8 +99,9 @@ this computation is done pointwise at each nodal point
     ν = viscosity_tensor(lm.ocean)
     D.ν∇u = -ν * G.∇u
 
-    κ = diffusivity_tensor(lm.ocean, G.∇θ[3])
-    D.κ∇θ = -κ * G.∇θ
+    κ = diffusivity_tensor(lm.ocean, A.κᶻ)
+    @inbounds ∇θ = @SVector [G.∇θʰ[1], G.∇θʰ[2], G.∇θᶻ[3]]
+    D.κ∇θ = -sqrt.(κ) * ∇θ
 
     return nothing
 end

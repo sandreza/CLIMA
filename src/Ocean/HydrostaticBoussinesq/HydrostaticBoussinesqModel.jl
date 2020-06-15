@@ -166,6 +166,7 @@ function vars_state_auxiliary(m::HBModel, T)
         w::T     # ∫(-∇⋅u)
         pkin::T  # ∫(-αᵀθ)
         wz0::T   # w at z=0
+        κᶻ::T    # vertical diffusivity
     end
 end
 
@@ -189,7 +190,8 @@ these are just copies in our model
 function vars_state_gradient(m::HBModel, T)
     @vars begin
         ∇u::SVector{2, T}
-        ∇θ::T
+        ∇θʰ::T
+        ∇θᶻ::T
     end
 end
 
@@ -206,9 +208,17 @@ this computation is done pointwise at each nodal point
 - `A`: array of aux variables
 - `t`: time, not used
 """
-@inline function compute_gradient_argument!(m::HBModel, G::Vars, Q::Vars, A, t)
+@inline function compute_gradient_argument!(
+    m::HBModel,
+    G::Vars,
+    Q::Vars,
+    A::Vars,
+    t,
+)
     G.∇u = Q.u
-    G.∇θ = Q.θ
+
+    G.∇θʰ = sqrt(m.κʰ) * Q.θ
+    G.∇θᶻ = sqrt(A.κᶻ) * Q.θ
 
     return nothing
 end
@@ -251,8 +261,9 @@ this computation is done pointwise at each nodal point
     ν = viscosity_tensor(m)
     D.ν∇u = -ν * G.∇u
 
-    κ = diffusivity_tensor(m, G.∇θ[3])
-    D.κ∇θ = -κ * G.∇θ
+    κ = diffusivity_tensor(m, A.κᶻ)
+    @inbounds ∇θ = @SVector [G.∇θʰ[1], G.∇θʰ[2], G.∇θᶻ[3]]
+    D.κ∇θ = -sqrt.(κ) * ∇θ
 
     return nothing
 end
@@ -272,17 +283,13 @@ uniform viscosity with different values for horizontal and vertical directions
 
 uniform diffusivity in the horizontal direction
 applies convective adjustment in the vertical, bump by 1000 if ∂θ∂z < 0
+convective adjustment applied in update_auxiliary_state!
 
 # Arguments
 - `m`: model object to dispatch on and get diffusivity parameters
-- `∂θ∂z`: value of the derivative of temperature in the z-direction
+- `κᶻ`: value of vertical diffusivity, store in state_auxiliary
 """
-@inline function diffusivity_tensor(m::HBModel, ∂θ∂z)
-    ∂θ∂z < 0 ? κ = (@SVector [m.κʰ, m.κʰ, 1000 * m.κᶻ]) : κ =
-        (@SVector [m.κʰ, m.κʰ, m.κᶻ])
-
-    return Diagonal(κ)
-end
+@inline diffusivity_tensor(m::HBModel, κᶻ) = Diagonal(@SVector [m.κʰ, m.κʰ, κᶻ])
 
 """
     vars_integral(::HBModel)
@@ -590,6 +597,19 @@ function update_auxiliary_state!(
         exp_filter = MD.exp_filter
         apply!(Q, (:θ,), dg.grid, exp_filter, direction = VerticalDirection())
     end
+
+    # compute values of κᶻ needed for convective adjustment
+    # purposely use value from previous time step
+    # to construct a symmetric operator
+    function f!(m::HBModel, Q, A, D, t)
+        @inbounds begin
+            # minus sign included in gradient flux
+            -D.κ∇θ[3] < 0 ? A.κᶻ = 1000 * m.κᶻ : κ = m.κᶻ
+        end
+
+        return nothing
+    end
+    nodal_update_auxiliary_state!(f!, dg, m, Q, t, elems; diffusive = true)
 
     return true
 end

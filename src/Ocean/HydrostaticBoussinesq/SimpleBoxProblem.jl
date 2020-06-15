@@ -51,6 +51,7 @@ function ocean_init_aux!(m::HBModel, p::AbstractSimpleBoxProblem, A, geom)
     A.w = 0
     A.pkin = 0
     A.wz0 = 0
+    A.κᶻ = m.κᶻ
 
     return nothing
 end
