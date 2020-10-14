@@ -5,11 +5,7 @@ function SplitConfig(
     resolution,
     dimensions,
     coupling,
-    rotation = Fixed();
-    boundary_conditions = (
-        OceanBC(Impenetrable(FreeSlip()), Insulating()),
-        OceanBC(Penetrable(FreeSlip()), Insulating()),
-    ),
+    problem;
     solver = SplitExplicitSolver,
     dt_slow = 90 * 60,
 )
@@ -49,12 +45,6 @@ function SplitConfig(
         FloatType = FT,
         DeviceArray = ArrayType,
         polynomialorder = N,
-    )
-
-    problem = SimpleBox{FT}(
-        dimensions...;
-        BC = boundary_conditions,
-        rotation = rotation,
     )
 
     dg_3D, dg_2D = setup_models(
