@@ -20,6 +20,11 @@ struct AtmosGCMSpecificInfo{FT} <: ConfigSpecificInfo
     nelem_vert::Int
     nelem_horz::Int
 end
+struct OceanGCMSpecificInfo{FT} <: ConfigSpecificInfo
+    domain_height::FT
+    nelem_vert::Int
+    nelem_horz::Int
+end
 struct OceanBoxGCMSpecificInfo <: ConfigSpecificInfo end
 struct OceanSplitExplicitSpecificInfo <: ConfigSpecificInfo
     model_2D::BalanceLaw
@@ -286,6 +291,88 @@ Establishing Atmos GCM configuration for %s
         AtmosGCMConfigType(),
         name,
         (polyorder_horz, polyorder_vert),
+        FT,
+        array_type,
+        solver_type,
+        param_set,
+        model,
+        mpicomm,
+        grid,
+        numerical_flux_first_order,
+        numerical_flux_second_order,
+        numerical_flux_gradient,
+        AtmosGCMSpecificInfo(domain_height, nelem_vert, nelem_horz),
+    )
+end
+
+function OceanSphereGCMConfiguration(
+    name::String,
+    N::Int,
+    (nelem_horz, nelem_vert)::NTuple{2, Int},
+    domain_height::FT,
+    param_set::AbstractParameterSet,
+    model::HydrostaticBoussinesqModel;
+    array_type = ClimateMachine.array_type(),
+    solver_type = ExplicitSolverType(
+        solver_method = LSRK144NiegemannDiehlBusch,
+    ),
+    mpicomm = MPI.COMM_WORLD,
+    meshwarp::Function = cubedshellwarp,
+    numerical_flux_first_order = RusanovNumericalFlux(),
+    numerical_flux_second_order = CentralNumericalFluxSecondOrder(),
+    numerical_flux_gradient = CentralNumericalFluxGradient(),
+) where {FT <: AbstractFloat}
+
+    print_model_info(model)
+
+    _planet_radius::FT = planet_radius(param_set)
+    vert_range = grid1d(
+        FT(_planet_radius - domain_height),
+        _planet_radius,
+        nelem = nelem_vert,
+    )
+
+    topology = StackedCubedSphereTopology(
+        mpicomm,
+        nelem_horz,
+        vert_range;
+        boundary = (1, 2),
+    )
+
+    grid = DiscontinuousSpectralElementGrid(
+        topology,
+        FloatType = FT,
+        DeviceArray = array_type,
+        polynomialorder = N,
+        meshwarp = meshwarp,
+    )
+
+    @info @sprintf(
+        """
+Establishing Ocean GCM configuration for %s
+    precision        = %s
+    polynomial order = %d
+    #horiz elems     = %d
+    #vert elems      = %d
+    domain height    = %.2e m
+    MPI ranks        = %d
+    min(Δ_horz)      = %.2f m
+    min(Δ_vert)      = %.2f m""",
+        name,
+        FT,
+        N,
+        nelem_horz,
+        nelem_vert,
+        domain_height,
+        MPI.Comm_size(mpicomm),
+        min_node_distance(grid, HorizontalDirection()),
+        min_node_distance(grid, VerticalDirection())
+    )
+
+    return DriverConfiguration(
+        OceanSphereGCMConfigType(),
+        name,
+        N,
         FT,
         array_type,
         solver_type,
