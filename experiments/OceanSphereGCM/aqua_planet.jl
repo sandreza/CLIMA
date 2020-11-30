@@ -4,7 +4,7 @@ using ClimateMachine.GenericCallbacks
 using ClimateMachine.ODESolvers
 using ClimateMachine.Mesh.Filters
 using ClimateMachine.VariableTemplates
-using ClimateMachine.Mesh.Grids: polynomialorder
+using ClimateMachine.Mesh.Grids: polynomialorders
 using ClimateMachine.BalanceLaws
 using ClimateMachine.Ocean
 using ClimateMachine.Ocean.HydrostaticBoussinesq
@@ -37,7 +37,8 @@ end
 
 function run_aqua_planet(driver_config, timespan, Δt; refDat = ())
     grid = driver_config.grid
-    vert_filter = CutoffFilter(grid, polynomialorder(grid) - 1)
+    vertorder = polynomialorders(grid)[3]
+    vert_filter = CutoffFilter(grid, vertorder - 1)
     exp_filter = ExponentialFilter(grid, 1, 8)
     modeldata = (vert_filter = vert_filter, exp_filter = exp_filter)
 

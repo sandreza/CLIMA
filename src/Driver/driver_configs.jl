@@ -307,7 +307,7 @@ end
 
 function OceanSphereGCMConfiguration(
     name::String,
-    N::Int,
+    N::Union{Int, NTuple{2, Int}},
     (nelem_horz, nelem_vert)::NTuple{2, Int},
     domain_height::FT,
     param_set::AbstractParameterSet,
@@ -322,6 +322,7 @@ function OceanSphereGCMConfiguration(
     numerical_flux_second_order = CentralNumericalFluxSecondOrder(),
     numerical_flux_gradient = CentralNumericalFluxGradient(),
 ) where {FT <: AbstractFloat}
+    (polyorder_horz, polyorder_vert) = isa(N, Int) ? (N, N) : N
 
     print_model_info(model)
 
@@ -350,17 +351,19 @@ function OceanSphereGCMConfiguration(
     @info @sprintf(
         """
 Establishing Ocean GCM configuration for %s
-    precision        = %s
-    polynomial order = %d
-    #horiz elems     = %d
-    #vert elems      = %d
-    domain height    = %.2e m
-    MPI ranks        = %d
-    min(Δ_horz)      = %.2f m
-    min(Δ_vert)      = %.2f m""",
+    precision              = %s
+    horiz polynomial order = %d
+    vert polynomial order  = %d
+    #horiz elems           = %d
+    #vert elems            = %d
+    domain height          = %.2e m
+    MPI ranks              = %d
+    min(Δ_horz)            = %.2f m
+    min(Δ_vert)            = %.2f m""",
         name,
         FT,
-        N,
+        polyorder_horz,
+        polyorder_vert,
         nelem_horz,
         nelem_vert,
         domain_height,
@@ -372,7 +375,7 @@ Establishing Ocean GCM configuration for %s
     return DriverConfiguration(
         OceanSphereGCMConfigType(),
         name,
-        N,
+        (polyorder_horz, polyorder_vert),
         FT,
         array_type,
         solver_type,
