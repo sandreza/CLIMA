@@ -1,5 +1,22 @@
 module HydrostaticBoussinesq
 
+"""
+changes to run on a sphere
+- store cartesian representation of uʰ = (u,v) as 3-vector vʰ as prog variables
+- store local u = (u,v,w) in local coordinate frame as aux variables
+- compute local u from cartesian v every rhs! eval during update_aux using jacobians
+- diffusion for tracers handled automatically, need to convert diagonal local diffusivity matrix to cartesian diffusivity matrix
+- advection for tracers requires converting w to a cartesian 3-vector and then adding to vʰ to get v
+- continuity equation: need to convert cartesian derivative 3x3-tensor ∇⋅vʰ to local 2x3-tensor derivative ∇ʰ⋅uʰ using jacobians (need to check if possible)
+- maybe look into using the Horizontal() and Vertical() direction splittings for gradients and divergences
+- use an auxiliary balance law for continuity equation
+- need to compute Horizontal() gradient of pressure
+- advection for momentum requires converting w to a cartesian 3-vector and then adding to vʰ to get v (and then computing v⊗vʰ)
+- just use Horizontal() and Vertical() to compute diffusion for momentum
+- or just need to convert the diagonal local viscosity matrix to cartesian viscosity matrix
+"""
+
+
 export HydrostaticBoussinesqModel
 
 using StaticArrays
