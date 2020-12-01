@@ -16,9 +16,9 @@ struct EarthParameterSet <: AbstractEarthParameterSet end
 const param_set = EarthParameterSet()
 
 function config_aqua_planet(name, resolution, domain_height, problem, BC)
-    problem = problem{FT}(1, 1, domain_height; BC = BC)
+    problem = problem{FT}(domain_height; BC = BC)
 
-    model = HydrostaticBoussinesqModel{FT}(param_set, problem, cʰ = 1)
+    model = HydrostaticBoussinesqModel{FT}(param_set, problem, cʰ = 1, αᵀ = 0)
 
     N, Nʰ, Nᶻ = resolution
     resolution = (Nʰ, Nᶻ)

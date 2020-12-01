@@ -1,6 +1,7 @@
 module OceanProblems
 
 export SimpleBox, Fixed, Rotating, HomogeneousBox, OceanGyre
+export SimpleSphere
 
 using StaticArrays
 using CLIMAParameters.Planet: grav
@@ -11,6 +12,9 @@ using ..Ocean
 using ..HydrostaticBoussinesq
 using ..ShallowWater
 using ..SplitExplicit01
+
+using CLIMAParameters
+using CLIMAParameters.Planet: planet_radius
 
 import ..Ocean:
     ocean_init_state!,
@@ -87,6 +91,13 @@ function ocean_init_aux!(::BarotropicModel, ::AbstractOceanProblem, A, geom)
     return nothing
 end
 
+@inline coriolis_parameter(
+    m::Union{HBModel, SWModel, OceanModel, BarotropicModel},
+    ::AbstractOceanProblem,
+    y,
+) = -0
+
 include("SimpleBoxProblem.jl")
+include("SimpleSphereProblem.jl")
 
 end

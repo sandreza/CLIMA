@@ -33,7 +33,7 @@ let
         "aqua_planet",
         resolution,
         domain_height,
-        SimpleBox,
+        SimpleSphere,
         BC,
     )
 
