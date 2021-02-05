@@ -29,10 +29,21 @@ let
     Lˣ = 4 * FT(π)  # m
     Lʸ = 4 * FT(π)  # m
 
-    params = (; N, Nˣ, Nʸ, Lˣ, Lʸ, dt, nout, timeend)
+    # model params
+    c = 2 # m/s
+    g = 10 # m/s²
+    ν = 0 # 1e-6,   # m²/s
+    κ = 0 # 1e-6,   # m²/s
+
+    resolution = (; N, Nˣ, Nʸ)
+    domain = (; Lˣ, Lʸ)
+    timespan = (; dt, nout, timeend)
+    params = (; c, g, ν, κ)
 
     config = Config(
         "bickley_jet",
+        resolution,
+        domain,
         params;
         numerical_flux_first_order = RoeNumericalFlux(),
         Nover = 0,
@@ -46,7 +57,7 @@ let
 
     tic = Base.time()
 
-    run_CNSE(config, params; TimeStepper = LSRK54CarpenterKennedy)
+    run_CNSE(config, resolution, timespan; TimeStepper = LSRK54CarpenterKennedy)
 
     toc = Base.time()
     time = toc - tic

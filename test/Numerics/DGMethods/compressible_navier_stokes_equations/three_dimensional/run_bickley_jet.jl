@@ -22,19 +22,31 @@ let
     N = 3
     Nˣ = 8
     Nʸ = 8
-    Nᶻ = 1
+    Nᶻ = 2
 
     # Domain size
     Lˣ = 4 * FT(π)  # m
     Lʸ = 4 * FT(π)  # m
-    Lᶻ = 1 # m
+    Lᶻ = 4 * FT(π)  # m
 
-    params = (; N, Nˣ, Nʸ, Nᶻ, Lˣ, Lʸ, Lᶻ, dt, nout, timeend)
+    # model params
+    cₛ = sqrt(10) # m/s
+    ρₒ = 1 # kg/m³
+    μ = 0 # 1e-6,   # m²/s
+    ν = 0 # 1e-6,   # m²/s
+    κ = 0 # 1e-6,   # m²/s
+
+    resolution = (; N, Nˣ, Nʸ, Nᶻ)
+    domain = (; Lˣ, Lʸ, Lᶻ)
+    timespan = (; dt, nout, timeend)
+    params = (; cₛ, ρₒ, μ, ν, κ)
 
     config = Config(
-        "bickley_jet_3D",
+        "rusanov_overintegration",
+        resolution,
+        domain,
         params;
-        numerical_flux_first_order = RoeNumericalFlux(),
+        numerical_flux_first_order = RusanovNumericalFlux(),
         Nover = 1,
         periodicity = (true, true, true),
         boundary = ((0, 0), (0, 0), (0, 0)),
@@ -46,7 +58,7 @@ let
 
     tic = Base.time()
 
-    run_CNSE(config, params; TimeStepper = LSRK54CarpenterKennedy)
+    run_CNSE(config, resolution, timespan; TimeStepper = LSRK54CarpenterKennedy)
 
     toc = Base.time()
     time = toc - tic

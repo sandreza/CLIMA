@@ -3,6 +3,8 @@ include("ThreeDimensionalCompressibleNavierStokesEquations.jl")
 
 function Config(
     name,
+    resolution,
+    domain,
     params;
     numerical_flux_first_order = RusanovNumericalFlux(),
     Nover = 0,
@@ -13,9 +15,12 @@ function Config(
     mpicomm = MPI.COMM_WORLD
     ArrayType = ClimateMachine.array_type()
 
-    xrange = range(-params.Lˣ / 2; length = params.Nˣ + 1, stop = params.Lˣ / 2)
-    yrange = range(-params.Lʸ / 2; length = params.Nʸ + 1, stop = params.Lʸ / 2)
-    zrange = range(-params.Lᶻ / 2; length = params.Nʸ + 1, stop = params.Lᶻ / 2)
+    xrange =
+        range(-domain.Lˣ / 2; length = resolution.Nˣ + 1, stop = domain.Lˣ / 2)
+    yrange =
+        range(-domain.Lʸ / 2; length = resolution.Nʸ + 1, stop = domain.Lʸ / 2)
+    zrange =
+        range(-domain.Lᶻ / 2; length = resolution.Nᶻ + 1, stop = domain.Lᶻ / 2)
 
     brickrange = (xrange, yrange, zrange)
 
@@ -30,22 +35,22 @@ function Config(
         topl,
         FloatType = FT,
         DeviceArray = ArrayType,
-        polynomialorder = params.N + Nover,
+        polynomialorder = resolution.N + Nover,
     )
 
     model = ThreeDimensionalCompressibleNavierStokes.CNSE3D{FT}(
-        (params.Lˣ, params.Lʸ),
+        (domain.Lˣ, domain.Lʸ, domain.Lᶻ),
         ClimateMachine.Ocean.NonLinearAdvectionTerm(),
         ThreeDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
-            μ = 0, # 1e-6,   # m²/s
-            ν = 0, # 1e-6,   # m²/s
-            κ = 0, # 1e-6,   # m²/s
+            μ = params.μ,
+            ν = params.ν,
+            κ = params.κ,
         ),
         nothing,
         nothing,
         boundary_conditons;
-        cₛ = 10, # m/s
-        ρₒ = 1000, # kg/m³
+        cₛ = params.cₛ,
+        ρₒ = params.ρₒ,
     )
 
     dg = DGModel(
@@ -62,7 +67,7 @@ end
 import ClimateMachine.Ocean: ocean_init_state!, ocean_init_aux!
 
 function ocean_init_state!(
-    ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
+    model::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
     state,
     aux,
     localgeo,
@@ -85,7 +90,7 @@ function ocean_init_state!(
     u = Ψ * (k * tan(k * y) + y / (l^2))
     v = -Ψ * k * tan(k * x)
 
-    ρ = 1
+    ρ = model.ρₒ
     state.ρ = ρ
     state.ρu = ρ * @SVector [U + ϵ * u, ϵ * v, -0]
     state.ρθ = ρ * sin(k * y)

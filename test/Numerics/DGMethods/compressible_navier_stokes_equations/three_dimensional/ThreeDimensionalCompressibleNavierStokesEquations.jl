@@ -108,8 +108,8 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
         coriolis::C,
         forcing::F,
         boundary_conditions::BC;
-        cₛ = FT(100),  #m/s
-        ρₒ = FT(1000),  #kg/m³
+        cₛ = FT(sqrt(10)),  #m/s
+        ρₒ = FT(1),  #kg/m³
     ) where {FT <: AbstractFloat, D, A, T, C, F, BC}
         return new{D, A, T, C, F, BC, FT}(
             domain,
