@@ -89,7 +89,7 @@ const vtkpath = nothing
                 ),),
             )
 
-            run_bickley_jet(
+            run_CNSE(
                 config,
                 params;
                 refDat = getproperty(refVals, Symbol(setup.name)),

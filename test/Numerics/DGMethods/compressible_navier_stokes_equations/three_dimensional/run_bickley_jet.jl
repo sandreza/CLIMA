@@ -9,10 +9,8 @@ const FT = Float64
 # RUN THE TESTS #
 #################
 
-vtkpath = abspath(joinpath(
-    ClimateMachine.Settings.output_dir,
-    "vtk_roe_flux_analytic_fixed",
-))
+vtkpath =
+    abspath(joinpath(ClimateMachine.Settings.output_dir, "vtk_bickley_3D"))
 
 let
     # simulation times
@@ -22,22 +20,24 @@ let
 
     # Domain Resolution
     N = 3
-    Nˣ = 16
-    Nʸ = 16
+    Nˣ = 8
+    Nʸ = 8
+    Nᶻ = 1
 
     # Domain size
     Lˣ = 4 * FT(π)  # m
     Lʸ = 4 * FT(π)  # m
+    Lᶻ = 1 # m
 
-    params = (; N, Nˣ, Nʸ, Lˣ, Lʸ, dt, nout, timeend)
+    params = (; N, Nˣ, Nʸ, Nᶻ, Lˣ, Lʸ, Lᶻ, dt, nout, timeend)
 
     config = Config(
-        "bickley_jet",
+        "bickley_jet_3D",
         params;
         numerical_flux_first_order = RoeNumericalFlux(),
-        Nover = 0,
-        periodicity = (true, false),
-        boundary = ((0, 0), (1, 1)),
+        Nover = 1,
+        periodicity = (true, true, true),
+        boundary = ((0, 0), (0, 0), (0, 0)),
         boundary_conditons = (ClimateMachine.Ocean.OceanBC(
             Impenetrable(FreeSlip()),
             Insulating(),

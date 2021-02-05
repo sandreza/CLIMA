@@ -1,13 +1,13 @@
 include("../CNSE.jl")
-include("TwoDimensionalCompressibleNavierStokesEquations.jl")
+include("ThreeDimensionalCompressibleNavierStokesEquations.jl")
 
 function Config(
     name,
     params;
     numerical_flux_first_order = RusanovNumericalFlux(),
     Nover = 0,
-    periodicity = (true, true),
-    boundary = ((0, 0), (0, 0)),
+    periodicity = (true, true, true),
+    boundary = ((0, 0), (0, 0), (0, 0)),
     boundary_conditons = (),
 )
     mpicomm = MPI.COMM_WORLD
@@ -15,8 +15,9 @@ function Config(
 
     xrange = range(-params.Lˣ / 2; length = params.Nˣ + 1, stop = params.Lˣ / 2)
     yrange = range(-params.Lʸ / 2; length = params.Nʸ + 1, stop = params.Lʸ / 2)
+    zrange = range(-params.Lᶻ / 2; length = params.Nʸ + 1, stop = params.Lᶻ / 2)
 
-    brickrange = (xrange, yrange)
+    brickrange = (xrange, yrange, zrange)
 
     topl = BrickTopology(
         mpicomm,
@@ -32,18 +33,19 @@ function Config(
         polynomialorder = params.N + Nover,
     )
 
-    model = TwoDimensionalCompressibleNavierStokes.CNSE2D{FT}(
+    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D{FT}(
         (params.Lˣ, params.Lʸ),
         ClimateMachine.Ocean.NonLinearAdvectionTerm(),
-        TwoDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
+        ThreeDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
+            μ = 0, # 1e-6,   # m²/s
             ν = 0, # 1e-6,   # m²/s
             κ = 0, # 1e-6,   # m²/s
         ),
         nothing,
         nothing,
         boundary_conditons;
-        g = 10, # m/s²
-        c = 2, # m/s
+        cₛ = 10, # m/s
+        ρₒ = 1000, # kg/m³
     )
 
     dg = DGModel(
@@ -60,7 +62,7 @@ end
 import ClimateMachine.Ocean: ocean_init_state!, ocean_init_aux!
 
 function ocean_init_state!(
-    ::TwoDimensionalCompressibleNavierStokes.CNSE2D,
+    ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
     state,
     aux,
     localgeo,
@@ -85,20 +87,21 @@ function ocean_init_state!(
 
     ρ = 1
     state.ρ = ρ
-    state.ρu = ρ * @SVector [U + ϵ * u, ϵ * v]
+    state.ρu = ρ * @SVector [U + ϵ * u, ϵ * v, -0]
     state.ρθ = ρ * sin(k * y)
 
     return nothing
 end
 
 function ocean_init_aux!(
-    ::TwoDimensionalCompressibleNavierStokes.CNSE2D,
+    ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
     aux,
     geom,
 )
     @inbounds begin
         aux.x = geom.coord[1]
         aux.y = geom.coord[2]
+        aux.z = geom.coord[3]
     end
 
     return nothing

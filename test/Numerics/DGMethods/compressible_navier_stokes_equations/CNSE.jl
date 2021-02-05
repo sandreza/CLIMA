@@ -9,8 +9,6 @@ using ClimateMachine.VariableTemplates
 using ClimateMachine.Mesh.Grids: polynomialorders
 using ClimateMachine.Ocean
 
-include("TwoDimensionalCompressibleNavierStokesEquations.jl")
-
 using ClimateMachine.Mesh.Topologies
 using ClimateMachine.Mesh.Grids
 using ClimateMachine.DGMethods
@@ -33,7 +31,7 @@ struct Config{N, D, O, M, AT}
     ArrayType::AT
 end
 
-function run_bickley_jet(
+function run_CNSE(
     config,
     params;
     TimeStepper = LSRK54CarpenterKennedy,
