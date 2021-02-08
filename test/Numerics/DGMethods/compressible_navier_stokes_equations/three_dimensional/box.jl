@@ -64,39 +64,7 @@ function Config(
     return Config(name, dg, Nover, mpicomm, ArrayType)
 end
 
-import ClimateMachine.Ocean: ocean_init_state!, ocean_init_aux!
-
-function ocean_init_state!(
-    model::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
-    state,
-    aux,
-    localgeo,
-    t,
-)
-    ϵ = 0.1 # perturbation magnitude
-    l = 0.5 # Gaussian width
-    k = 0.5 # Sinusoidal wavenumber
-
-    x = aux.x
-    y = aux.y
-
-    # The Bickley jet
-    U = cosh(y)^(-2)
-
-    # Slightly off-center vortical perturbations
-    Ψ = exp(-(y + l / 10)^2 / (2 * (l^2))) * cos(k * x) * cos(k * y)
-
-    # Vortical velocity fields (ũ, ṽ) = (-∂ʸ, +∂ˣ) ψ̃
-    u = Ψ * (k * tan(k * y) + y / (l^2))
-    v = -Ψ * k * tan(k * x)
-
-    ρ = model.ρₒ
-    state.ρ = ρ
-    state.ρu = ρ * @SVector [U + ϵ * u, ϵ * v, -0]
-    state.ρθ = ρ * sin(k * y)
-
-    return nothing
-end
+import ClimateMachine.Ocean: ocean_init_aux!
 
 function ocean_init_aux!(
     ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,

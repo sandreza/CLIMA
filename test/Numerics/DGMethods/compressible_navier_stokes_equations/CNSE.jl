@@ -136,9 +136,11 @@ function make_callbacks(
         end
         mkpath(vtkpath)
 
+        """
         file = jldopen(vtkpath * "/" * filename * ".jld2", "w")
         file["grid"] = dg.grid
         close(file)
+        """
 
         function do_output(vtkstep, model, dg, Q)
             outprefix = @sprintf(
@@ -153,10 +155,12 @@ function make_callbacks(
             auxnames = flattenednames(vars_state(model, Auxiliary(), eltype(Q)))
             writevtk(outprefix, Q, dg, statenames, dg.state_auxiliary, auxnames)
 
+            """
             @info "doing JLD2 output" vtkstep
             file = jldopen(vtkpath * "/" * filename * ".jld2", "a+")
-            file[string(vtkstep)] = Q.realdata
+            file[string(vtkstep)] = Array(Q.realdata)
             close(file)
+            """
 
             vtkstep += 1
 
