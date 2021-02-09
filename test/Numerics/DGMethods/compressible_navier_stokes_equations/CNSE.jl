@@ -56,6 +56,8 @@ function run_CNSE(
         end
     end
 
+    println("time step is " * string(timespan.dt))
+    println("time end is " * string(timespan.timeend))
     odesolver = TimeStepper(custom_tendency, Q, dt = timespan.dt, t0 = 0)
 
     vtkstep = 0
