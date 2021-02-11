@@ -15,7 +15,7 @@ const vtkpath = nothing
     # simulation times
     timeend = FT(200) # s
     dt = FT(0.02) # s
-    nout = Int(1000)
+    nout = Int(timeend / dt / 10)
 
     # Domain Resolution
     N = 3

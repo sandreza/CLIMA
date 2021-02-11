@@ -57,8 +57,8 @@ end
 
     # simulation times
     timeend = FT(200) # s
-    dt = FT(0.005) # s
-    nout = Int(10000)
+    dt = FT(0.004) # s
+    nout = Int(timeend / dt / 10)
     timespan = (; dt, nout, timeend)
 
     # Domain Resolutions
@@ -107,6 +107,8 @@ end
                     refValName = resolution.name * "_" * setup.name
 
                     println("starting test " * refValName)
+                    tic = Base.time()
+
                     run_CNSE(
                         config,
                         resolution,
@@ -114,6 +116,10 @@ end
                         TimeStepper = SSPRK22Heuns,
                         refDat = getproperty(refVals, Symbol(refValName)),
                     )
+
+                    toc = Base.time()
+                    time = toc - tic
+                    println(time)
                 end
             end
         end
