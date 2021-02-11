@@ -492,8 +492,10 @@ end
 splits boundary condition application into velocity
 """
 @inline function ocean_boundary_state!(nf, bc::OceanBC, m::CNSE3D, args...)
-    return ocean_boundary_state!(nf, bc.velocity, m, m.turbulence, args...)
-    return ocean_boundary_state!(nf, bc.temperature, m, args...)
+    ocean_boundary_state!(nf, bc.velocity, m, m.turbulence, args...)
+    ocean_boundary_state!(nf, bc.temperature, m, args...)
+
+    return nothing
 end
 
 include("bc_momentum.jl")
