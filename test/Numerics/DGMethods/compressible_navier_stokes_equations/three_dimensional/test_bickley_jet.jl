@@ -57,7 +57,7 @@ end
 
     # simulation times
     timeend = FT(200) # s
-    dt = FT(0.002) # s
+    dt = FT(0.005) # s
     nout = Int(10000)
     timespan = (; dt, nout, timeend)
 

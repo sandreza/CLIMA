@@ -37,8 +37,6 @@ const vtkpath = nothing
     timespan = (; dt, nout, timeend)
     params = (; c, g, ν, κ)
 
-    params = (; N, Nˣ, Nʸ, Lˣ, Lʸ, dt, nout, timeend)
-
     setups = [
         (;
             name = "rusanov_periodic",
