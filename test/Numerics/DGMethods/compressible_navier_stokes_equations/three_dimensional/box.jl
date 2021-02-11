@@ -47,7 +47,10 @@ function Config(
             κ = params.κ,
         ),
         nothing,
-        nothing,
+        ThreeDimensionalCompressibleNavierStokes.Buoyancy{FT}(
+            α = params.α,
+            g = params.g,
+        ),
         boundary_conditons;
         cₛ = params.cₛ,
         ρₒ = params.ρₒ,

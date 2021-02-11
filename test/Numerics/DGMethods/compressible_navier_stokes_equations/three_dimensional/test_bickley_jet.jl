@@ -78,7 +78,9 @@ end
     μ = 0 # 1e-6,   # m²/s
     ν = 0 # 1e-6,   # m²/s
     κ = 0 # 1e-6,   # m²/s
-    params = (; cₛ, ρₒ, μ, ν, κ)
+    α = 0   # 1/K
+    g = 0   # m/s²
+    params = (; cₛ, ρₒ, μ, ν, κ, α, g)
 
     setups = [
         (; name = "rusanov", flux = RusanovNumericalFlux(), Nover = 0),

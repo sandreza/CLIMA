@@ -59,11 +59,13 @@ let
     μ = 0 # 1e-6,   # m²/s
     ν = 1e-2   # m²/s
     κ = 1e-2   # m²/s
+    α = 2e-4   # 1/K
+    g = 10     # m/s²
 
     resolution = (; N, Nˣ, Nʸ, Nᶻ)
     domain = (; Lˣ, Lʸ, Lᶻ)
     timespan = (; dt, nout, timeend)
-    params = (; cₛ, ρₒ, μ, ν, κ)
+    params = (; cₛ, ρₒ, μ, ν, κ, α, g)
 
     BC = (
         ClimateMachine.Ocean.OceanBC(Impenetrable(NoSlip()), Insulating()),
