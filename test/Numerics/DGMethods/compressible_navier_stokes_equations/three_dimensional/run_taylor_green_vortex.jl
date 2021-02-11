@@ -64,11 +64,13 @@ let
     μ = 0 # 1e-6,   # m²/s
     ν = 1e-3   # m²/s
     κ = 1e-3   # m²/s
+    α = 0   # 1/K
+    g = 0   # m/s²
 
     resolution = (; N, Nˣ, Nʸ, Nᶻ)
     domain = (; Lˣ, Lʸ, Lᶻ)
     timespan = (; dt, nout, timeend)
-    params = (; cₛ, ρₒ, μ, ν, κ)
+    params = (; cₛ, ρₒ, μ, ν, κ, α, g)
 
     config = Config(
         "roeflux_overintegration",
