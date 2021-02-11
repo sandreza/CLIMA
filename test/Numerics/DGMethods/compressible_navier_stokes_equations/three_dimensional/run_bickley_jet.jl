@@ -23,20 +23,25 @@ function ocean_init_state!(
 
     x = aux.x
     y = aux.y
+    z = aux.z
 
     # The Bickley jet
-    U = cosh(y)^(-2)
+    U = sech(y)^2
+    V = 0
+    W = 0
 
     # Slightly off-center vortical perturbations
-    Ψ = exp(-(y + l / 10)^2 / (2 * (l^2))) * cos(k * x) * cos(k * y)
+    Ψ₁ = exp(-(y + l / 10)^2 / (2 * (l^2))) * cos(k * x) * cos(k * y)
+    Ψ₂ = exp(-(z + l / 10)^2 / (2 * (l^2))) * cos(k * y) * cos(k * z)
 
-    # Vortical velocity fields (ũ, ṽ) = (-∂ʸ, +∂ˣ) ψ̃
-    u = Ψ * (k * tan(k * y) + y / (l^2))
-    v = -Ψ * k * tan(k * x)
+    # Vortical velocity fields (u, v, w) = (-∂ʸ, +∂ˣ, 0) Ψ₁ + (0, -∂ᶻ, +∂ʸ)Ψ₂ 
+    u = Ψ₁ * (k * tan(k * y) + y / (l^2) + 1 / (10 * l))
+    v = -Ψ₁ * k * tan(k * x) + Ψ₂ * (k * tan(k * z) + z / (l^2) + 1 / (10 * l))
+    w = -Ψ₂ * k * tan(k * y)
 
     ρ = model.ρₒ
     state.ρ = ρ
-    state.ρu = ρ * @SVector [U + ϵ * u, ϵ * v, -0]
+    state.ρu = ρ * @SVector [U + ϵ * u, V + ϵ * v, W + ϵ * w]
     state.ρθ = ρ * sin(k * y)
 
     return nothing
@@ -52,14 +57,14 @@ vtkpath =
 let
     # simulation times
     timeend = FT(200) # s
-    dt = FT(0.02) # s
-    nout = Int(100)
+    dt = FT(0.002) # s
+    nout = Int(1000)
 
     # Domain Resolution
-    N = 3
-    Nˣ = 8
-    Nʸ = 8
-    Nᶻ = 2
+    N = 4
+    Nˣ = 13
+    Nʸ = 13
+    Nᶻ = 13
 
     # Domain size
     Lˣ = 4 * FT(π)  # m
@@ -95,7 +100,7 @@ let
 
     tic = Base.time()
 
-    run_CNSE(config, resolution, timespan; TimeStepper = SPRK22Heuns)
+    run_CNSE(config, resolution, timespan; TimeStepper = SSPRK22Heuns)
 
     toc = Base.time()
     time = toc - tic
