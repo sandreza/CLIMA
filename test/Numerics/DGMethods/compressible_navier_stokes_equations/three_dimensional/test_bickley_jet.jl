@@ -62,8 +62,8 @@ end
     timespan = (; dt, nout, timeend)
 
     # Domain Resolutions
-    polyorder_1 = (name = "polyorder1", N = 1, Nˣ = 32, Nʸ = 32, Nᶻ = 32)
-    polyorder_4 = (name = "polyorder4", N = 4, Nˣ = 13, Nʸ = 13, Nᶻ = 13)
+    polyorder_1 = (name = "first_order", N = 1, Nˣ = 32, Nʸ = 32, Nᶻ = 32)
+    polyorder_4 = (name = "fourth_order", N = 4, Nˣ = 13, Nʸ = 13, Nᶻ = 13)
     resolutions = [polyorder_1, polyorder_4]
 
     # Domain size
@@ -82,48 +82,31 @@ end
     g = 0   # m/s²
     params = (; cₛ, ρₒ, μ, ν, κ, α, g)
 
-    setups = [
-        (; name = "rusanov", flux = RusanovNumericalFlux(), Nover = 0),
-        (; name = "roeflux", flux = RoeNumericalFlux(), Nover = 0),
-        (; name = "rusanov_OI", flux = RusanovNumericalFlux(), Nover = 1),
-        (; name = "roeflux_OI", flux = RoeNumericalFlux(), Nover = 1),
-    ]
-
     for resolution in resolutions
         @testset "$(resolution.name)" begin
-            for setup in setups
-                if resolution.N == 4 && setup.Nover == 0
-                    continue
-                end
+            config = Config(
+                resolution.name,
+                resolution,
+                domain,
+                params;
+                numerical_flux_first_order = RoeNumericalFlux(),
+                Nover = 1,
+            )
 
-                @testset "$(setup.name)" begin
-                    config = Config(
-                        setup.name,
-                        resolution,
-                        domain,
-                        params;
-                        numerical_flux_first_order = setup.flux,
-                        Nover = setup.Nover,
-                    )
+            println("starting test " * resolution.name)
+            tic = Base.time()
 
-                    refValName = resolution.name * "_" * setup.name
+            run_CNSE(
+                config,
+                resolution,
+                timespan;
+                TimeStepper = SSPRK22Heuns,
+                refDat = getproperty(refVals, Symbol(resolution.name)),
+            )
 
-                    println("starting test " * refValName)
-                    tic = Base.time()
-
-                    run_CNSE(
-                        config,
-                        resolution,
-                        timespan;
-                        TimeStepper = SSPRK22Heuns,
-                        refDat = getproperty(refVals, Symbol(refValName)),
-                    )
-
-                    toc = Base.time()
-                    time = toc - tic
-                    println(time)
-                end
-            end
+            toc = Base.time()
+            time = toc - tic
+            println(time)
         end
     end
 end
