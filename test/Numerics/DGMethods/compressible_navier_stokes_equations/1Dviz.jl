@@ -1,16 +1,19 @@
 using ClimateMachine, JLD2, GLMakie
 
 filename = "heatequation"
+filename = "cool_the_box"
 f = jldopen(filename * ".jld2", "r+")
 
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/bigfileofstuff.jl")
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/ScalarFields.jl")
 
-nout = 10 + 1
+nout = 60 + 1
 dg_grid = f["grid"]
 gridhelper = GridHelper(dg_grid)   
 x, y, z = coordinates(dg_grid)
 ϕ =  ScalarField(copy(x), gridhelper)
+#=
+# analytic solution for heat equation
 dt = 1e-4 * 100
 analytic = zeros(size(x)..., nout)
 for i in 1:nout
@@ -23,6 +26,7 @@ i = 10
 Q = f[string(i-1)][:,5,:]
 tmp = @. cos(π*z) * exp(-(π)^2 * (i-1) * dt)
 norm(Q - tmp) / norm(Q)
+=#
 ##
 Ω = (extrema(x), extrema(y), extrema(z))
 newx = range(Ω[1][1], Ω[1][2], length = 2 )
