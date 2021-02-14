@@ -20,7 +20,7 @@ function Config(
     yrange =
         range(-domain.Lʸ / 2; length = resolution.Nʸ + 1, stop = domain.Lʸ / 2)
     zrange =
-        range(-domain.Lᶻ ; length = resolution.Nᶻ + 1, stop = 0.0)
+        range(-domain.Lᶻ / 2; length = resolution.Nᶻ + 1, stop = domain.Lᶻ / 2)
 
     brickrange = (xrange, yrange, zrange)
 

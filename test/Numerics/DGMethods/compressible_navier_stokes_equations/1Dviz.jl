@@ -1,22 +1,33 @@
 using ClimateMachine, JLD2, GLMakie
 
-filename = "cool_the_box"
+filename = "heatequation"
 f = jldopen(filename * ".jld2", "r+")
 
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/bigfileofstuff.jl")
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/ScalarFields.jl")
 
-nout = 20 + 1
+nout = 10 + 1
 dg_grid = f["grid"]
 gridhelper = GridHelper(dg_grid)   
 x, y, z = coordinates(dg_grid)
-xC, yC, zC = cellcenters(dg_grid)
 ϕ =  ScalarField(copy(x), gridhelper)
-
+dt = 1e-4 * 100
+analytic = zeros(size(x)..., nout)
+for i in 1:nout
+    # @. analytic[:,:,i] = 
+    tmp = @. cos(π*z) * exp(-(π)^2 * (i-1) * dt)
+    Q = f[string(i-1)][:,5,:]
+    println(norm(tmp-Q)/norm(Q))
+end
+i = 10
+Q = f[string(i-1)][:,5,:]
+tmp = @. cos(π*z) * exp(-(π)^2 * (i-1) * dt)
+norm(Q - tmp) / norm(Q)
+##
 Ω = (extrema(x), extrema(y), extrema(z))
-newx = range(Ω[1][1], Ω[1][2], length = 6 )
-newy = range(Ω[2][1], Ω[2][2], length = 6 )
-newz = range(Ω[3][1], Ω[3][2], length = 6 )
+newx = range(Ω[1][1], Ω[1][2], length = 2 )
+newy = range(Ω[2][1], Ω[2][2], length = 2 )
+newz = range(Ω[3][1], Ω[3][2], length = 32 )
 ##
 ρ  = zeros(length(newx), length(newy), length(newz), nout)
 ρu = zeros(length(newx), length(newy), length(newz), nout)
@@ -41,9 +52,35 @@ toc = time()
 close(f)
 println("time to interpolate is $(toc-tic)")
 
-limits = FRect(19, -100, 1, 100)
-scene = lines(ρθ[1,1,:,1], -100..0, limits = limits)
-axis = scene.axis # get the axis object from the scene
-axis.xlabel = "Temperature"
-axis.ylabel = "Depth"
-display(scene)
+##
+# oldρθ = ρθ
+fig = Figure()
+ax1 = fig[2:4, 2:4] = Axis(fig, title = "Heat Equation", xlabel = "Temperature", ylabel = "Depth")
+
+timeslider = Slider(fig, range = Int.(collect(1:nout)))
+timenode = timeslider.value
+
+state = @lift(ρθ[1,1,:,$timenode])
+tmp = lines!(ax1, state, -100..0, color = :red, linewidth = 5)
+
+#=
+oldstate = @lift(oldρθ[1,1,:,$timenode])
+tmp2 = lines!(ax1, oldstate, -100..0, color = :blue, linewidth = 5)
+
+fig[2, 1] = vgrid!(
+        Label(fig, "Time", width = nothing),
+        timeslider,
+        Legend(fig,
+        [tmp, tmp2],
+        ["Overintegration", "Underintegration",])
+)
+=#
+fig[2, 1] = vgrid!(
+        Label(fig, "Time", width = nothing),
+        timeslider,
+)
+display(fig)
+##
+record(fig, "heat.mp4", 1:nout, framerate=10) do n
+    timenode[] = n
+end

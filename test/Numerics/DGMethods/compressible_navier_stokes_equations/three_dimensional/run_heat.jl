@@ -1,6 +1,6 @@
 #!/usr/bin/env julia --project
 
-include("box.jl")
+include("heat.jl")
 ClimateMachine.init()
 
 const FT = Float64
@@ -25,7 +25,7 @@ function ocean_init_state!(
     ρ = model.ρₒ
     state.ρ = ρ
     state.ρu = ρ * @SVector [-0, -0, -0]
-    state.ρθ = ρ * (20 + z / 100)
+    state.ρθ = ρ * cos(π * z)
 
     return nothing
 end
@@ -37,31 +37,31 @@ end
 vtkpath = abspath(joinpath(ClimateMachine.Settings.output_dir, "vtk_box_3D"))
 
 let
-    filename  = "cool_the_box"
+    filename  = "heatequation"
     # simulation times
-    timeend = FT(200) # s
-    dt = FT(0.25) # s
-    nout = Int(20)
+    timeend = FT(0.1) # s
+    dt = FT(1e-4) # s
+    nout = Int(100)
 
     # Domain Resolution
-    N = 3
+    N = 2
     Nˣ = 1
     Nʸ = 1
-    Nᶻ = 4
+    Nᶻ = 24
 
     # Domain size
-    Lˣ = 100.0  # m
-    Lʸ = 100.0  # m
-    Lᶻ = 100.0  # m
+    Lˣ = 2.0  # m
+    Lʸ = 2.0  # m
+    Lᶻ = 2.0  # m
 
     # model params
-    cₛ = sqrt(10) # m/s
+    cₛ = 0.01 # m/s
     ρₒ = 1 # kg/m³
     μ = 0 # 1e-6,   # m²/s
-    ν = 1e-2   # m²/s
-    κ = 1e-2   # m²/s
+    ν = 0e-2   # m²/s
+    κ = 1e-0   # m²/s
     α = 2e-4   # 1/K
-    g = 10.0     # m/s²
+    g = 00.0     # m/s²
 
     resolution = (; N, Nˣ, Nʸ, Nᶻ)
     domain = (; Lˣ, Lʸ, Lᶻ)
@@ -71,12 +71,12 @@ let
     BC = (
         ClimateMachine.Ocean.OceanBC(
             Impenetrable(NoSlip()),
-             TemperatureFlux((state, aux, t) -> (0.01 * κ))),
+             TemperatureFlux((state, aux, t) -> (0.00 * κ))),
         ClimateMachine.Ocean.OceanBC(
             Impenetrable(KinematicStress(
                 (state, aux, t) -> (@SVector [0.00 / state.ρ, -0, -0]),
             )),
-            TemperatureFlux((state, aux, t) -> (1e-5)),
+            TemperatureFlux((state, aux, t) -> (0.0)),
         ),
     )
 
