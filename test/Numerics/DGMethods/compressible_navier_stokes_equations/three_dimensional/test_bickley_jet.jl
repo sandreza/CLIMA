@@ -74,13 +74,14 @@ end
 
     # model params
     cₛ = sqrt(10) # m/s
+    cᶻ = cₛ
     ρₒ = 1 # kg/m³
     μ = 0 # 1e-6,   # m²/s
     ν = 0 # 1e-6,   # m²/s
     κ = 0 # 1e-6,   # m²/s
     α = 0   # 1/K
     g = 0   # m/s²
-    params = (; cₛ, ρₒ, μ, ν, κ, α, g)
+    params = (; cₛ, cᶻ, ρₒ, μ, ν, κ, α, g)
 
     for resolution in resolutions
         @testset "$(resolution.name)" begin

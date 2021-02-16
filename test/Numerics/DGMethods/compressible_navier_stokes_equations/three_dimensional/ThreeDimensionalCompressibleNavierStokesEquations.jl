@@ -12,6 +12,7 @@ using ClimateMachine.Mesh.Geometry
 using ClimateMachine.DGMethods
 using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.BalanceLaws
+using ClimateMachine.Orientations
 using ClimateMachine.Ocean: coriolis_parameter
 using ClimateMachine.Mesh.Geometry: LocalGeometry
 using ClimateMachine.MPIStateArrays: MPIStateArray
@@ -34,6 +35,7 @@ import ClimateMachine.Ocean:
     ocean_boundary_state!,
     _ocean_boundary_state!
 import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
+import ClimateMachine.Orientations: vertical_unit_vector
 
 ×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
 ⋅(a::SVector, b::SVector) = StaticArrays.dot(a, b)
@@ -74,6 +76,60 @@ struct Buoyancy{T} <: Forcing
     end
 end
 
+abstract type Pressure end
+
+struct IsotropicPressure{T} <: Pressure
+    cₛ::T # m/s
+    ρₒ::T # kg/m³
+    function IsotropicPressure{T}(;
+        cₛ = T(sqrt(10)),
+        ρₒ = T(1),
+    ) where {T <: AbstractFloat}
+        return new{T}(cₛ, ρₒ)
+    end
+end
+
+@inline sound_speed(i::IsotropicPressure) = @SVector [i.cₛ, i.cₛ, i.cₛ]
+
+@inline function pressure(i::IsotropicPressure, state, aux)
+    ρ = state.ρ
+    ρₒ = i.ρₒ
+
+    k̂ = aux.orientation.∇ϕ
+    c² = i.cₛ^2 * I
+
+    p = ρ^2 / (2 * ρₒ) * c²
+
+    return p
+end
+
+struct AnisotropicPressure{T} <: Pressure
+    cₛ::T # m/s
+    cᶻ::T # m/s
+    ρₒ::T # kg/m³
+    function AnisotropicPressure{T}(;
+        cₛ = T(sqrt(10)),
+        cᶻ = T(sqrt(10) / 1000),
+        ρₒ = T(1),
+    ) where {T <: AbstractFloat}
+        return new{T}(cₛ, cᶻ, ρₒ)
+    end
+end
+
+@inline sound_speed(a::AnisotropicPressure) = @SVector [a.cₛ, a.cₛ, a.cᶻ]
+
+@inline function pressure(a::AnisotropicPressure, state, aux)
+    ρ = state.ρ
+    ρₒ = a.ρₒ
+
+    k̂ = aux.orientation.∇ϕ
+    c² = a.cₛ^2 * I + (a.cᶻ^2 - a.cₛ^2) * k̂ * k̂'
+
+    p = ρ^2 / (2 * ρₒ) * c²
+
+    return p
+end
+
 """
     ThreeDimensionalCompressibleNavierStokesEquations <: BalanceLaw
 A `BalanceLaw` for shallow water modeling.
@@ -83,40 +139,41 @@ write out the equations here
 """
 struct ThreeDimensionalCompressibleNavierStokesEquations{
     D,
+    O,
+    P,
     A,
     T,
     C,
     F,
     BC,
-    FT,
 } <: BalanceLaw
     domain::D
+    orientation::O
+    pressure::P
     advection::A
     turbulence::T
     coriolis::C
     forcing::F
     boundary_conditions::BC
-    cₛ::FT
-    ρₒ::FT
-    function ThreeDimensionalCompressibleNavierStokesEquations{FT}(
+    function ThreeDimensionalCompressibleNavierStokesEquations(
         domain::D,
+        orientation::O,
+        pressure::P,
         advection::A,
         turbulence::T,
         coriolis::C,
         forcing::F,
-        boundary_conditions::BC;
-        cₛ = FT(sqrt(10)),  #m/s
-        ρₒ = FT(1),  #kg/m³
-    ) where {FT <: AbstractFloat, D, A, T, C, F, BC}
-        return new{D, A, T, C, F, BC, FT}(
+        boundary_conditions::BC,
+    ) where {D, O, P, A, T, C, F, BC}
+        return new{D, O, P, A, T, C, F, BC}(
             domain,
+            orientation,
+            pressure,
             advection,
             turbulence,
             coriolis,
             forcing,
             boundary_conditions,
-            cₛ,
-            ρₒ,
         )
     end
 end
@@ -140,22 +197,64 @@ function vars_state(m::CNSE3D, ::Auxiliary, T)
         x::T
         y::T
         z::T
+        orientation::vars_state(m.orientation, st, FT)
     end
 end
 
 function init_state_auxiliary!(
-    model::CNSE3D,
+    m::CNSE3D,
     state_auxiliary::MPIStateArray,
     grid,
     direction,
 )
+    # update the geopotential Φ in state_auxiliary.orientation.Φ
     init_state_auxiliary!(
-        model,
-        (model, aux, tmp, geom) -> ocean_init_aux!(model, aux, geom),
+        m,
+        (m, aux, tmp, geom) ->
+            orientation_nodal_init_aux!(m.orientation, m.domain, aux, geom),
         state_auxiliary,
         grid,
         direction,
     )
+
+    # update ∇Φ in state_auxiliary.orientation.∇Φ
+    auxiliary_field_gradient!(
+        m,
+        state_auxiliary,
+        ("orientation.∇Φ",),
+        state_auxiliary,
+        ("orientation.Φ",),
+        grid,
+        direction,
+    )
+
+    # store coordinates and potentially other stuff
+    init_state_auxiliary!(
+        m,
+        (m, aux, tmp, geom) -> ocean_init_aux!(m, aux, geom),
+        state_auxiliary,
+        grid,
+        direction,
+    )
+end
+
+function orientation_nodal_init_aux!(
+    ::SphericalOrientation,
+    domain::Tuple,
+    aux::Vars,
+    geom::LocalGeometry,
+)
+    norm_R = norm(geom.coord)
+    @inbounds aux.orientation.Φ = norm_R - domain[1]
+end
+
+function orientation_nodal_init_aux!(
+    ::FlatOrientation,
+    domain::Tuple,
+    aux::Vars,
+    geom::LocalGeometry,
+)
+    @inbounds aux.orientation.Φ = geom.coord[3]
 end
 
 function vars_state(m::CNSE3D, ::Gradient, T)
@@ -256,11 +355,8 @@ end
     ρu = state.ρu
     ρθ = state.ρθ
 
-    cₛ = model.cₛ
-    ρₒ = model.ρₒ
-
     flux.ρ += ρu
-    flux.ρu += (cₛ * ρ)^2 / (2 * ρₒ) * I
+    flux.ρu += pressure(model.pressure, state, aux)
 
     advective_flux!(model, model.advection, flux, state, aux, t)
 
@@ -402,8 +498,7 @@ function numerical_flux_first_order!(
     FT = eltype(fluxᵀn)
 
     # constants and normal vectors
-    cₛ = model.cₛ
-    ρₒ = model.ρₒ
+    c = n⁻ ⋅ sound_speed(model.pressure)
 
     # - states
     ρ⁻ = state⁻.ρ
@@ -415,9 +510,9 @@ function numerical_flux_first_order!(
     θ⁻ = ρθ⁻ / ρ⁻
     uₙ⁻ = u⁻' * n⁻
 
-    # in general thermodynamics
-    p⁻ = (cₛ * ρ⁻)^2 / (2 * ρₒ)
-    c⁻ = cₛ * sqrt(ρ⁻ / ρₒ)
+    # in general thermodynamics 
+    p⁻ = norm(pressure(model.pressure, state⁻, aux⁻))
+    c⁻ = c * sqrt(ρ⁻ / ρₒ)
 
     # + states
     ρ⁺ = state⁺.ρ
@@ -430,8 +525,8 @@ function numerical_flux_first_order!(
     uₙ⁺ = u⁺' * n⁻
 
     # in general thermodynamics
-    p⁺ = (cₛ * ρ⁺)^2 / (2 * ρₒ)
-    c⁺ = cₛ * sqrt(ρ⁺ / ρₒ)
+    p⁺ = norm(pressure(model.pressure, state⁺, aux⁺))
+    c⁺ = c * sqrt(ρ⁺ / ρₒ)
 
     # construct roe averges
     ρ = sqrt(ρ⁻ * ρ⁺)

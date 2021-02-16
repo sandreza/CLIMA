@@ -38,8 +38,20 @@ function Config(
         polynomialorder = resolution.N + Nover,
     )
 
-    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D{FT}(
+    if (params.cᶻ == params.cₛ)
+        pressure = IsotropicPressure{FT}(cₛ = params.cₛ, ρₒ = params.ρₒ)
+    else
+        pressure = AinsotropicPressure{FT}(
+            cₛ = params.cₛ,
+            cᶻ = params.cᶻ,
+            ρₒ = params.ρₒ,
+        )
+    end
+
+    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D(
         (domain.Lˣ, domain.Lʸ, domain.Lᶻ),
+        ClimateMachine.Orientations.FlatOrientation(),
+        pressure,
         ClimateMachine.Ocean.NonLinearAdvectionTerm(),
         ThreeDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
             μ = params.μ,
@@ -51,9 +63,7 @@ function Config(
             α = params.α,
             g = params.g,
         ),
-        boundary_conditons;
-        cₛ = params.cₛ,
-        ρₒ = params.ρₒ,
+        boundary_conditons,
     )
 
     dg = DGModel(

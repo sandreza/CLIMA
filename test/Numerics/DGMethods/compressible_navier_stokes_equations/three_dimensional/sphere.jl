@@ -17,8 +17,6 @@ function Config(
     mpicomm = MPI.COMM_WORLD
     ArrayType = ClimateMachine.array_type()
 
-
-
     println(string(resolution.Nᶻ) * " elems in the vertical")
 
     vert_range =
@@ -46,8 +44,20 @@ function Config(
         meshwarp = cubedshellwarp,
     )
 
+    if (params.cᶻ == params.cₛ)
+        pressure = IsotropicPressure{FT}(cₛ = params.cₛ, ρₒ = params.ρₒ)
+    else
+        pressure = AinsotropicPressure{FT}(
+            cₛ = params.cₛ,
+            cᶻ = params.cᶻ,
+            ρₒ = params.ρₒ,
+        )
+    end
+
     model = ThreeDimensionalCompressibleNavierStokes.CNSE3D{FT}(
         (domain.min_height, domain.max_height),
+        ClimateMachine.Orientations.SphericalOrientation(),
+        pressure,
         ClimateMachine.Ocean.NonLinearAdvectionTerm(),
         ThreeDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
             μ = params.μ,
@@ -56,9 +66,7 @@ function Config(
         ),
         nothing,
         nothing,
-        boundary_conditons;
-        cₛ = params.cₛ,
-        ρₒ = params.ρₒ,
+        boundary_conditons,
     )
 
     dg = DGModel(

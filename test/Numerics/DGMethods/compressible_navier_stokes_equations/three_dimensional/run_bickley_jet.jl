@@ -73,6 +73,7 @@ let
 
     # model params
     cₛ = sqrt(10) # m/s
+    cᶻ = cₛ
     ρₒ = 1 # kg/m³
     μ = 0 # 1e-6,   # m²/s
     ν = 0 # 1e-6,   # m²/s
@@ -83,7 +84,7 @@ let
     resolution = (; N, Nˣ, Nʸ, Nᶻ)
     domain = (; Lˣ, Lʸ, Lᶻ)
     timespan = (; dt, nout, timeend)
-    params = (; cₛ, ρₒ, μ, ν, κ, α, g)
+    params = (; cₛ, cᶻ, ρₒ, μ, ν, κ, α, g)
 
     config = Config(
         "rusanov_overintegration",
