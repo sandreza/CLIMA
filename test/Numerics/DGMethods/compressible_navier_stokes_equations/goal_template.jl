@@ -33,7 +33,7 @@ flux = RoeNumericalFlux()
 κ = IsotropicLaplacian(1e-4)
 dissipation = (ρu = ν, ρθ = κ)
 
-# Construct the spatial model
+# Construct the spatial model (implied by balance law)
 model = ThreeDimensionalCompressibleNavierStokes(
     grid = grid,
     boundary_conditions = boundary_conditions,
