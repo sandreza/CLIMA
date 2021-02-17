@@ -39,7 +39,7 @@ model = ThreeDimensionalCompressibleNavierStokes(
     grid = grid,
     boundary_conditions = boundary_conditions,
     parameters = parameters,
-    dissapation = dissapation,
+    dissipation = dissipation,
     flux = flux,
 )
 
