@@ -28,7 +28,7 @@ parameters = (
 # Numerics Nobs
 flux = RoeNumericalFlux()
 
-# Dissapation models
+# Dissipation models
 ν = IsotropicLaplacian(1e-2)
 κ = IsotropicLaplacian(1e-4)
 dissipation = (ρu = ν, ρθ = κ)
