@@ -160,9 +160,9 @@ function make_callbacks(
             =#
             
             @info "doing JLD2 output" vtkstep
-            file = jldopen(filename * ".jld2", "a+")
-            file[string(vtkstep)] = Array(Q.realdata)
-            close(file)
+            # file = jldopen(filename * ".jld2", "a+")
+            # file[string(vtkstep)] = Array(Q.realdata)
+            # close(file)
             
 
             vtkstep += 1

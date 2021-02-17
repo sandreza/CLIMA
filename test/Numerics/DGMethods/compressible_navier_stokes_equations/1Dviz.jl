@@ -88,3 +88,17 @@ display(fig)
 record(fig, "heat.mp4", 1:nout, framerate=10) do n
     timenode[] = n
 end
+
+##
+# Target Design Template for Idealized Test Cases
+# domain / grid
+Ω = Atmosphere(height = 30.0km, radius = 6378km)
+grid = DiscontinuousSpectralElementGrid(
+    domain = Ω,
+    elements = (vertical = 4, horizontal = 8)
+    polynomialorder = (vertical = 1, horizontal = 5)
+)
+
+##
+
+

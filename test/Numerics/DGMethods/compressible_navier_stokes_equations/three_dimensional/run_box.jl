@@ -1,6 +1,7 @@
 #!/usr/bin/env julia --project
 
 include("box.jl")
+# include("test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/box.jl")
 ClimateMachine.init()
 
 const FT = Float64
@@ -92,8 +93,8 @@ let
         boundary_conditons = BC,
     )
 
-    f = jldopen(filename * ".jld2", "a+")
-    f["grid"] = config.dg.grid
+    # f = jldopen(filename * ".jld2", "a+")
+    # f["grid"] = config.dg.grid
     close(f)
 
     tic = Base.time()
