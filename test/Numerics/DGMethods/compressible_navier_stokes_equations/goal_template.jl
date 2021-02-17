@@ -2,6 +2,7 @@
 include("boiler_plate.jl") 
 
 # Domain, create tensor product domain [-2π,2π) × [-π,π) × [0,1]
+# can also have constructors for Ω = Atmosphere() or Ω = Ocean() etc.
 Ω = Periodic(-2π,2π) × Periodic(-π,π) × Interval(0,1) 
 # Grid with smart Defaults (like topology selection, float type and so forth)
 grid = DiscontinuousSpectralElementGrid(
