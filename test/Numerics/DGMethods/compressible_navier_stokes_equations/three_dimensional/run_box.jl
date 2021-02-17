@@ -21,10 +21,13 @@ function ocean_init_state!(
     x = aux.x
     y = aux.y
     z = aux.z
-
-    ρ = model.ρₒ * ( 1 +  ( 2e-3 / 1) * z^2 / 200.0 )
+    cₛ = model.cₛ
+    ρ = model.ρₒ * ( 1 +  ( 2e-3 / cₛ^2) * z^2 / 200.0 )
+    # 0.01 * z + 0.01 * 2e-3 / cₛ^2 z^3 / 200
+    # 0.01 * (1 + 0.01 * 2e-3 / cₛ^2 * 3 * 100^2 / 200)
     state.ρ = ρ
-    state.ρu = ρ * @SVector [-0, -0, -0]
+    ϵ = 1e-6
+    state.ρu = ρ * @SVector [ϵ*sin(2π*y/100)*sin(2π*z/100), ϵ*sin(2π*x/100)*sin(2π*z/100), -0]
     state.ρθ = ρ * (0.01 * z )
 
     return nothing
@@ -37,17 +40,18 @@ end
 vtkpath = abspath(joinpath(ClimateMachine.Settings.output_dir, "vtk_box_3D"))
 
 let
-    filename  = "cool_the_box"
+    cₛ = 0.2 # sqrt(1) # m/s # dont forget to change initial condition
+    filename  = "cool_the_box_3"
     # simulation times
-    timeend = FT(60 * 60) # s
-    dt = FT(0.25) # s
-    nout = Int(4 * 60)
+    timeend = FT(4 * 24 * 60 * 60) # s
+    dt = FT(0.125 / cₛ ) # s # 0.125 ≈ Lˣ / ( Nˣ * (N + 1)^2) * 0.3
+    nout = round(Int, 60 * 60 * 4 / dt) # output every 4 hours or so
 
     # Domain Resolution
-    N = 1
-    Nˣ = 1
-    Nʸ = 1
-    Nᶻ = 8
+    N = 3
+    Nˣ = 8*2
+    Nʸ = 8*2
+    Nᶻ = 8*2
 
     # Domain size
     Lˣ = 100.0  # m
@@ -55,13 +59,12 @@ let
     Lᶻ = 100.0  # m
 
     # model params
-    cₛ = sqrt(1) # m/s
     ρₒ = 1 # kg/m³
     μ = 0 # 1e-6,   # m²/s
-    ν = 1e-4   # m²/s
+    ν = 5e-3   # m²/s ν = 1e-2, κ = 1e-4 worked
     κ = 1e-4   # m²/s
     α = 2e-4   # 1/K
-    g = 10.0     # m/s²
+    g = 10.0   # m/s²
 
     resolution = (; N, Nˣ, Nʸ, Nᶻ)
     domain = (; Lˣ, Lʸ, Lᶻ)
@@ -71,12 +74,12 @@ let
     BC = (
         ClimateMachine.Ocean.OceanBC(
             Impenetrable(NoSlip()),
-             TemperatureFlux((state, aux, t) -> (0.01 * κ))),
+             TemperatureFlux((state, aux, t) -> ( (0.01 + 0.01 * 2e-3 / cₛ^2 * 3 * 100^2 / 200) * κ))),
         ClimateMachine.Ocean.OceanBC(
             Impenetrable(KinematicStress(
                 (state, aux, t) -> (@SVector [0.00 / state.ρ, -0, -0]),
             )),
-            TemperatureFlux((state, aux, t) -> (1e-6)),
+            TemperatureFlux((state, aux, t) -> (1e-5)),
         ),
     )
 
@@ -92,9 +95,9 @@ let
         boundary_conditons = BC,
     )
 
-    f = jldopen(filename * ".jld2", "a+")
-    f["grid"] = config.dg.grid
-    close(f)
+    # f = jldopen(filename * ".jld2", "a+")
+    # f["grid"] = config.dg.grid
+    # close(f)
 
     tic = Base.time()
 
