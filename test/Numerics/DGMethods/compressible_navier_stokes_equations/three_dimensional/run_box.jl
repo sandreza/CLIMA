@@ -22,7 +22,7 @@ function ocean_init_state!(
     y = aux.y
     z = aux.z
 
-    ρ = model.ρₒ
+    ρ = model.pressure.ρₒ
     state.ρ = ρ
     state.ρu = ρ * @SVector [-0, -0, -0]
     state.ρθ = ρ * 5
@@ -55,6 +55,7 @@ let
 
     # model params
     cₛ = sqrt(10) # m/s
+    cᶻ = cₛ
     ρₒ = 1 # kg/m³
     μ = 0 # 1e-6,   # m²/s
     ν = 1e-2   # m²/s
@@ -65,7 +66,7 @@ let
     resolution = (; N, Nˣ, Nʸ, Nᶻ)
     domain = (; Lˣ, Lʸ, Lᶻ)
     timespan = (; dt, nout, timeend)
-    params = (; cₛ, ρₒ, μ, ν, κ, α, g)
+    params = (; cₛ, cᶻ, ρₒ, μ, ν, κ, α, g)
 
     BC = (
         ClimateMachine.Ocean.OceanBC(Impenetrable(NoSlip()), Insulating()),
@@ -86,7 +87,7 @@ let
         Nover = 1,
         periodicity = (true, true, false),
         boundary = ((0, 0), (0, 0), (1, 2)),
-        boundary_conditons = BC,
+        boundary_conditions = BC,
     )
 
     tic = Base.time()

@@ -10,7 +10,7 @@ function Config(
     Nover = 0,
     periodicity = (true, true, true),
     boundary = ((0, 0), (0, 0), (0, 0)),
-    boundary_conditons = (),
+    boundary_conditions = (),
 )
     mpicomm = MPI.COMM_WORLD
     ArrayType = ClimateMachine.array_type()
@@ -39,13 +39,18 @@ function Config(
     )
 
     if (params.cᶻ == params.cₛ)
-        pressure = IsotropicPressure{FT}(cₛ = params.cₛ, ρₒ = params.ρₒ)
+        pressure =
+            ThreeDimensionalCompressibleNavierStokes.IsotropicPressure{FT}(
+                cₛ = params.cₛ,
+                ρₒ = params.ρₒ,
+            )
     else
-        pressure = AinsotropicPressure{FT}(
-            cₛ = params.cₛ,
-            cᶻ = params.cᶻ,
-            ρₒ = params.ρₒ,
-        )
+        pressure =
+            ThreeDimensionalCompressibleNavierStokes.AnisotropicPressure{FT}(
+                cₛ = params.cₛ,
+                cᶻ = params.cᶻ,
+                ρₒ = params.ρₒ,
+            )
     end
 
     model = ThreeDimensionalCompressibleNavierStokes.CNSE3D(
@@ -63,7 +68,7 @@ function Config(
             α = params.α,
             g = params.g,
         ),
-        boundary_conditons,
+        boundary_conditions,
     )
 
     dg = DGModel(

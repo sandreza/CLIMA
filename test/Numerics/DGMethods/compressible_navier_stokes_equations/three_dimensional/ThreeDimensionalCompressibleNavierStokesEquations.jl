@@ -95,8 +95,8 @@ end
     ρ = state.ρ
     ρₒ = i.ρₒ
 
-    k̂ = aux.orientation.∇ϕ
-    c² = i.cₛ^2 * I
+    k̂ = aux.orientation.∇Φ
+    c² = i.cₛ^2 * Diagonal(@SVector[1, 1, 1])
 
     p = ρ^2 / (2 * ρₒ) * c²
 
@@ -122,8 +122,8 @@ end
     ρ = state.ρ
     ρₒ = a.ρₒ
 
-    k̂ = aux.orientation.∇ϕ
-    c² = a.cₛ^2 * I + (a.cᶻ^2 - a.cₛ^2) * k̂ * k̂'
+    k̂ = aux.orientation.∇Φ
+    c² = a.cₛ^2 * I + (a.cᶻ^2 - a.cₛ^2) * k̂ ⊗ k̂
 
     p = ρ^2 / (2 * ρₒ) * c²
 
@@ -192,12 +192,12 @@ function init_state_prognostic!(m::CNSE3D, state::Vars, aux::Vars, localgeo, t)
     ocean_init_state!(m, state, aux, localgeo, t)
 end
 
-function vars_state(m::CNSE3D, ::Auxiliary, T)
+function vars_state(m::CNSE3D, st::Auxiliary, T)
     @vars begin
         x::T
         y::T
         z::T
-        orientation::vars_state(m.orientation, st, FT)
+        orientation::vars_state(m.orientation, st, T)
     end
 end
 
@@ -465,7 +465,7 @@ forcing_term!(::CNSE3D, ::Nothing, _...) = nothing
     source.ρu += @SVector [-0, -0, B]
 end
 
-@inline wavespeed(m::CNSE3D, _...) = m.cₛ
+@inline wavespeed(m::CNSE3D, n⁻, _...) = n⁻ ⋅ sound_speed(m.pressure)
 
 roe_average(ρ⁻, ρ⁺, var⁻, var⁺) =
     (sqrt(ρ⁻) * var⁻ + sqrt(ρ⁺) * var⁺) / (sqrt(ρ⁻) + sqrt(ρ⁺))
@@ -498,6 +498,7 @@ function numerical_flux_first_order!(
     FT = eltype(fluxᵀn)
 
     # constants and normal vectors
+    ρₒ = model.pressure.ρₒ
     c = n⁻ ⋅ sound_speed(model.pressure)
 
     # - states

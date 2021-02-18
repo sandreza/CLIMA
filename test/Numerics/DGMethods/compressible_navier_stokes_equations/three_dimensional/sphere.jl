@@ -9,7 +9,7 @@ function Config(
     numerical_flux_first_order = RoeNumericalFlux(),
     Nover = 0,
     boundary = (1, 1),
-    boundary_conditons = (ClimateMachine.Ocean.OceanBC(
+    boundary_conditions = (ClimateMachine.Ocean.OceanBC(
         Impenetrable(FreeSlip()),
         Insulating(),
     ),),
@@ -45,16 +45,21 @@ function Config(
     )
 
     if (params.cᶻ == params.cₛ)
-        pressure = IsotropicPressure{FT}(cₛ = params.cₛ, ρₒ = params.ρₒ)
+        pressure =
+            ThreeDimensionalCompressibleNavierStokes.IsotropicPressure{FT}(
+                cₛ = params.cₛ,
+                ρₒ = params.ρₒ,
+            )
     else
-        pressure = AinsotropicPressure{FT}(
-            cₛ = params.cₛ,
-            cᶻ = params.cᶻ,
-            ρₒ = params.ρₒ,
-        )
+        pressure =
+            ThreeDimensionalCompressibleNavierStokes.AnisotropicPressure{FT}(
+                cₛ = params.cₛ,
+                cᶻ = params.cᶻ,
+                ρₒ = params.ρₒ,
+            )
     end
 
-    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D{FT}(
+    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D(
         (domain.min_height, domain.max_height),
         ClimateMachine.Orientations.SphericalOrientation(),
         pressure,
@@ -66,7 +71,7 @@ function Config(
         ),
         nothing,
         nothing,
-        boundary_conditons,
+        boundary_conditions,
     )
 
     dg = DGModel(
