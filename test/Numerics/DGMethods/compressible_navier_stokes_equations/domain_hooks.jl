@@ -3,8 +3,6 @@ using ClimateMachine.Mesh.Grids
 using ClimateMachine.Mesh.Topologies
 using ClimateMachine.MPIStateArrays
 
-using MPI
-
 import ClimateMachine.Mesh.Grids: DiscontinuousSpectralElementGrid
 import ClimateMachine.Mesh.Topologies: StackedBrickTopology, BrickTopology
 
@@ -34,8 +32,7 @@ function uniformbrickbuilder(Ω, elements; FT = Float64)
     dimension = ndims(Ω)
     tuple_ranges = []
     for i in 1:dimension
-        push!(tuple_ranges, range(FT(Ω[i].a); length = elements[i] + 1,
-            stop = FT(Ω[i].b)))
+        push!(tuple_ranges, range(FT(Ω[i].a); length = elements[i] + 1, stop = FT(Ω[i].b)))
     end
     brickrange = Tuple(tuple_ranges)
     return brickrange
@@ -64,8 +61,8 @@ function DiscontinuousSpectralElementGrid(
     Ω::ProductDomain; 
     elements = nothing, 
     polynomialorder = nothing, 
-    FT=Float64,         
-    mpicomm=MPI.COMM_WORLD, 
+    FT = Float64,         
+    mpicomm = MPI.COMM_WORLD, 
     array = ClimateMachine.array_type(),
     topology = StackedBrickTopology,
     brickbuilder = uniformbrickbuilder
@@ -81,7 +78,7 @@ function DiscontinuousSpectralElementGrid(
 
     if polynomialorder==nothing
         error_message = "Please specify the polynomial order as a tuple whose size is commensurate with the domain,"
-        error_message = "e.g., a 3 dimensional domain would need a specification like polynomialorder = (3,3,3)."
+        error_message *= "e.g., a 3 dimensional domain would need a specification like polynomialorder = (3,3,3)."
         error_message *= " or polynomialorder = (vertical = 8, horizontal = 5)"
         @error(error_message)
         return nothing
@@ -138,6 +135,7 @@ end
 
 ## 
 # perhaps return wrapper to dg_grid instead
+ClimateMachine.init()
 Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
 dggrid = DiscontinuousSpectralElementGrid(
     Ω, 
