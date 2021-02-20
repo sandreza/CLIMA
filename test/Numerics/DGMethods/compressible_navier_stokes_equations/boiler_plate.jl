@@ -7,6 +7,7 @@ include("CNSE.jl")
 include("dissipation_models.jl")
 
 include("abstract_timesteppers.jl")
+include("abstract_simulation.jl")
 
 include("./three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
 

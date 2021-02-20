@@ -38,13 +38,27 @@ model = SpatialModel(
     parameters = parameters
 )
 
-ρu₀(x, y, z, p, state) = state.ρ * sin(x) * sin(y)
-ρv₀(x, y, z, p, state) = state.ρ * p.ϵ * sin(x)*sin(y) 
+ρu₀(x, y, z, p) = state.ρ * sin(x) * sin(y)
+ρv₀(x, y, z, p) = state.ρ * p.ϵ * sin(x) * sin(y) 
 initial_conditions = (
     ρ = 1,
     ρu = (ρu₀, ρv₀, 0),
-    ρθ = (x,y,z,p, state) -> state.ρ * (0.01 * z),
+    ρθ = (x,y,z,p) -> state.ρ * (0.01 * z),
 )
 
-cfl_dt = calculate_cfls(grid, wavespeed = parameters.cₛ)
-timestepper = TimeStepper(method = SSPRK22Heuns, timestep = cfl_dt)
+Δt = calculate_dt(grid, wavespeed = parameters.cₛ, cfl = 0.1)
+timestepper = TimeStepper(method = SSPRK22Heuns, timestep = Δt)
+
+simulationtime = (0, 10)
+
+callbacks = (
+    Default(),
+)
+
+simulation = Simulation(
+    model = model,
+    initialconditions = initial_conditions,
+    timestepper = timestepper,
+    callbacks = callbacks,
+    simulationtime = simulationtime,
+)

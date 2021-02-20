@@ -73,6 +73,7 @@ function createcallbacks(callbacks)
     for callback in callbacks
         push!(cvector, createcallback(callback))
     end
+    return cvector
 end
 =#
 
