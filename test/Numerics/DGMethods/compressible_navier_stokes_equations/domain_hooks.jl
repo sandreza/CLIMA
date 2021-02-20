@@ -151,7 +151,6 @@ dggrid = DiscontinuousSpectralElementGrid(
     Ω, 
     elements = (vertical = 1, horizontal = 2),
     polynomialorder = 3, 
-    topology = BrickTopology,
 )
 #
 Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
