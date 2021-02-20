@@ -24,12 +24,12 @@ function IntervalDomain(a, b; periodic=false)
     return IntervalDomain(a, b, periodic)
 end
 
-function Circle(a, b)
+function Periodic(a, b)
     @assert a < b
     return IntervalDomain(a, b, periodic = true)
 end
 
-S¹ = Circle
+S¹ = Periodic
 
 function Interval(a, b)
     @assert a < b
@@ -45,7 +45,10 @@ function Base.show(io::IO, Ω::IntervalDomain)
     a = Ω.a
     b = Ω.b
     printstyled(io, "[", color = 226)
-    printstyled("$a, $b", color = 7)
+    astring = @sprintf("%0.2f", a)
+    bstring = @sprintf("%0.2f", b)
+    printstyled(astring, ", ", bstring, color = 7)
+    # printstyled("$a, $b", color = 7)
     Ω.periodic ? printstyled(io, ")", color = 226) : printstyled(io, "]", color = 226)
  end
 
@@ -76,11 +79,7 @@ ndims(Ω::ProductDomain) = +(ndims.(Ω.domains)...)
 ×(arg1::AbstractDomain, args::ProductDomain) = ProductDomain((arg1, args.domains...))
 ×(arg1::ProductDomain, args::ProductDomain) = ProductDomain((arg1.domains..., args.domains...))
 ×(args::AbstractDomain) = ProductDomain(args...)
-*(arg1::AbstractDomain, arg2::AbstractDomain) = ProductDomain((arg1, arg2))
-*(args::ProductDomain, arg2::AbstractDomain) = ProductDomain((args.domains..., arg2))
-*(arg1::AbstractDomain, args::ProductDomain) = ProductDomain((arg1, args.domains...))
-*(arg1::ProductDomain, args::ProductDomain) = ProductDomain((arg1.domains..., args.domains...))
-*(args::AbstractDomain) = ProductDomain(args...)
+*(arg1::AbstractDomain, arg2::AbstractDomain) = arg1 × arg2  
 
 function info(Ω::ProductDomain)
     println("This is a ", ndims(Ω),"-dimensional tensor product domain.")
@@ -94,12 +93,12 @@ function info(Ω::ProductDomain)
     return nothing
 end
 
-function check_full_periodicity(Ω::ProductDomain)
+function isperiodic(Ω::ProductDomain)
     b = [Ω.domains[i].periodic for i in eachindex(Ω.domains)]
     return prod(b)
 end
 
-function periodicity_function(Ω::ProductDomain)
+function periodicityof(Ω::ProductDomain)
     periodicity = ones(Bool, ndims(Ω))
     for i in 1:ndims(Ω)
         periodicity[i] = Ω[i].periodic

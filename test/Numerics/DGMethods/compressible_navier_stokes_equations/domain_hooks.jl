@@ -1,4 +1,4 @@
-using ClimateMachine
+using ClimateMachine, MPI
 using ClimateMachine.Mesh.Grids
 using ClimateMachine.Mesh.Topologies
 using ClimateMachine.MPIStateArrays
@@ -6,26 +6,75 @@ using ClimateMachine.MPIStateArrays
 using MPI
 
 import ClimateMachine.Mesh.Grids: DiscontinuousSpectralElementGrid
+import ClimateMachine.Mesh.Topologies: StackedBrickTopology
 
+# some convenience functions
+function convention(a::NamedTuple{(:vertical, :horizontal), T}, ::Val{3}) where T
+    return (a.horizontal, a.horizontal, a.vertical)
+end
+
+function convention(a::Number, ::Val{3})
+    return (a, a, a)
+end
+
+function convention(a::NamedTuple{(:vertical, :horizontal), T}, ::Val{2}) where T
+    return (a.horizontal, a.vertical)
+end
+
+function convention(a::Number, ::Val{2})
+    return (a, a)
+end
+
+function convention(a::Tuple)
+    return a
+end
+
+## brick range brickbuilder
+function uniformbrickbuilder(Ω, elements)
+    dimension = ndims(Ω)
+    tuple_ranges = []
+    for i in 1:dimension
+        push!(tuple_ranges, range(FT(Ω[i].a); length = elements[i] + 1,
+            stop = FT(Ω[i].b)))
+    end
+    brickrange = Tuple(tuple_ranges)
+    return brickrange
+end
+
+##
 """
 function DiscontinuousSpectralElementGrid(Ω::ProductDomain; elements = nothing, polynomialorder = nothing)
 # Description 
 Computes a DiscontinuousSpectralElementGrid as specified by a product domain
 # Arguments
 -`Ω`: A product domain object
-# Keyword Arguments TODO: Add brickrange and topology as keyword arguments
+# Keyword Arguments 
 -`elements`: A tuple of integers ordered by (Nx, Ny, Nz) for number of elements
 -`polynomialorder`: A tupe of integers ordered by (npx, npy, npz) for polynomial order
 -`FT`: floattype, assumed Float64 unless otherwise specified
+-`topology`: default = StackedBrickTopology
 -`mpicomm`: default = MPI.COMM_WORLD
--`array`: default = Array, but should generally be ArrayType
+-`array`: default = ClimateMachine.array_type()
+-`brickbuilder`: default = uniformbrickbuilder, 
+  brickrange=uniformbrickbuilder(Ω, elements)
 # Return 
 A DiscontinuousSpectralElementGrid object
 """
-function DiscontinuousSpectralElementGrid(Ω::ProductDomain; elements = nothing, polynomialorder = nothing, boundary = nothing, FT=Float64, mpicomm=MPI.COMM_WORLD, array = Array)
+function DiscontinuousSpectralElementGrid(
+    Ω::ProductDomain; 
+    elements = nothing, 
+    polynomialorder = nothing, 
+    FT=Float64,         
+    mpicomm=MPI.COMM_WORLD, 
+    array = ClimateMachine.array_type(),
+    topology = StackedBrickTopology
+    brickbuilder = uniformbrickbuilder
+    )
+
     if elements==nothing
         error_message = "Please specify the number of elements as a tuple whose size is commensurate with the domain,"
-        error_message = "e.g., a 3 dimensional domain would need a specification like elements = (10,10,10)."
+        error_message *= " e.g., a 3 dimensional domain would need a specification like elements = (10,10,10)."
+        error_message *= " or elements = (vertical = 8, horizontal = 5)"
         @error(error_message)
         return nothing
     end
@@ -33,6 +82,7 @@ function DiscontinuousSpectralElementGrid(Ω::ProductDomain; elements = nothing,
     if polynomialorder==nothing
         error_message = "Please specify the polynomial order as a tuple whose size is commensurate with the domain,"
         error_message = "e.g., a 3 dimensional domain would need a specification like polynomialorder = (3,3,3)."
+        error_message *= " or polynomialorder = (vertical = 8, horizontal = 5)"
         @error(error_message)
         return nothing
     end
@@ -47,34 +97,33 @@ function DiscontinuousSpectralElementGrid(Ω::ProductDomain; elements = nothing,
         return nothing
     end
 
+    elements = convention(elements, Val(dimension))
     if ndims(Ω) != length(elements)
         @error("Specified too many elements for the dimension of the domain")
         return nothing
     end
 
+    polynomialorder = convention(polynomialorder, Val(dimension))
     if ndims(Ω) != length(polynomialorder)
         @error("Specified too many polynomialorders for the dimension of the domain")
         return nothing
     end
 
-    periodicity = periodicity_function(Ω)
-    tuple_ranges = []
+    brickrange = brickbuilder(Ω, elements)
 
-    for i in 1:dimension
-        push!(tuple_ranges,range(FT(Ω[i].a); length = elements[i] + 1,
-            stop = FT(Ω[i].b)))
+    if dimension == 2
+        boundary = ((1,2), (3,4))
+    else
+        boundary = ((1,2), (3,4), (5,6))
     end
 
-    brickrange = Tuple(tuple_ranges)
-    if boundary==nothing
-        boundary = (ntuple(j -> (1, 2), dimension - 1)...,(3, 4),)
-    end
+    periodicity = periodicityof(Ω)
 
-    topl = StackedBrickTopology(
-                            mpicomm,
-                            brickrange;
-                            periodicity = periodicity,
-                            boundary = boundary
+    topl = topology(
+        mpicomm,
+        brickrange;
+        periodicity = periodicity,
+        boundary = boundary
     )
 
     grid = DiscontinuousSpectralElementGrid(
@@ -85,3 +134,43 @@ function DiscontinuousSpectralElementGrid(Ω::ProductDomain; elements = nothing,
     )
     return grid
 end
+
+## 
+# perhaps return wrapper to dg_grid instead
+
+## 
+Ω = Periodic(0,1) × Periodic(0,1) × Periodic(0,1)
+elements = (1,1,1)
+polynomialorder = (1,1,1)
+dimension = ndims(Ω)
+
+periodicity = periodicityof(Ω)
+tuple_ranges = []
+FT = Float64
+for i in 1:dimension
+    push!(tuple_ranges,range(FT(Ω[i].a); length = elements[i] + 1,
+        stop = FT(Ω[i].b)))
+end
+brickrange = Tuple(tuple_ranges)
+ClimateMachine.init()
+mpicomm = MPI.COMM_WORLD
+topl = StackedBrickTopology(
+                        mpicomm,
+                        brickrange;
+                        periodicity = periodicity,
+                        boundary = ((1,2),(3,4),(5,6))
+)
+array = Array
+grid = DiscontinuousSpectralElementGrid(
+    topl,
+    FloatType = FT,
+    DeviceArray = array,
+    polynomialorder = polynomialorder,
+)
+
+##
+DiscontinuousSpectralElementGrid(Ω, 
+                                elements = (1,1,1),
+                                polynomialorder = (1,1,1), 
+                                boundary = ((1,2), (3,4), (5,6)),
+)

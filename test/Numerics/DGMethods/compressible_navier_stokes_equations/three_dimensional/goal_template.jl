@@ -46,7 +46,7 @@ model = ThreeDimensionalCompressibleNavierStokes(
 # Construct the time evolution
 # Initial Conditions, with functions, anonymous functions, scalars, etc.
 # can have dependence on parameter struct, p
-u₀(x,y,z) = sin(x)*sin(y)
+u₀(x,y,z) = sin(x) * sin(y)
 v₀(x, y, z, p) = p.ϵ * sin(x)*sin(y) 
 initial_conditions = (
     ρ = 1,
@@ -65,12 +65,20 @@ callbacks = (
     MakieVisuals(minute = 10, directory = "/wherever/"),
 )
 
+simulationtime = (0, 10)
 simulation = Simulation(
     model = model,
     inital_conditions = initial_conditions,
     timestepper = timestepper,
     callbacks = callbacks,
+    time = simulationtime,
 )
 
 # and run it
 evolve!(simulation)
+
+##
+# Timestepper object
+# NumericalGrid object with easy access to information
+# Simulation Object that basically acts like the final step of config
+# model object that has most of the spatial information necessary
