@@ -30,7 +30,7 @@ function convention(a::Tuple, b)
 end
 
 # brick range brickbuilder
-function uniformbrickbuilder(Ω, elements)
+function uniformbrickbuilder(Ω, elements; FT = Float64)
     dimension = ndims(Ω)
     tuple_ranges = []
     for i in 1:dimension
@@ -109,7 +109,7 @@ function DiscontinuousSpectralElementGrid(
         return nothing
     end
 
-    brickrange = brickbuilder(Ω, elements)
+    brickrange = brickbuilder(Ω, elements, FT = FT)
 
     if dimension == 2
         boundary = ((1,2), (3,4))
@@ -151,6 +151,14 @@ dggrid = DiscontinuousSpectralElementGrid(
     Ω, 
     elements = (vertical = 1, horizontal = 2),
     polynomialorder = 3, 
+    topology = BrickTopology,
+)
+#
+Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
+dggrid = DiscontinuousSpectralElementGrid(
+    Ω, 
+    elements = (vertical = 1, horizontal = 4),
+    polynomialorder = (vertical = 2, horizontal = 3), 
     topology = BrickTopology,
 )
 #
