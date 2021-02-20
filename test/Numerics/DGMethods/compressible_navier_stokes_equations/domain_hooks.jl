@@ -105,7 +105,7 @@ function DiscontinuousSpectralElementGrid(
 
     polynomialorder = convention(polynomialorder, Val(dimension))
     if ndims(Ω) != length(polynomialorder)
-        @error("Incorrectly polynomialorders for the dimension of the domain")
+        @error("Incorrectly specified polynomialorders for the dimension of the domain")
         return nothing
     end
 
@@ -141,7 +141,7 @@ end
 Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
 dggrid = DiscontinuousSpectralElementGrid(
     Ω, 
-    elements = (vertical = 1, horizontal = 2),
+    elements = (3,4,5),
     polynomialorder = (1, 2, 3), 
     topology = BrickTopology,
 )
@@ -158,6 +158,6 @@ dggrid = DiscontinuousSpectralElementGrid(
 dggrid = DiscontinuousSpectralElementGrid(
     Ω, 
     elements = (vertical = 1, horizontal = 2),
-    polynomialorder = 3, 
+    polynomialorder = 1, 
 )
 
