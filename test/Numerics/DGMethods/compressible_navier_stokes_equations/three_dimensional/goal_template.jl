@@ -6,8 +6,8 @@ include("boiler_plate.jl")
 Ω = Periodic(-2π,2π) × Periodic(-π,π) × Interval(0,1) 
 # Grid with smart Defaults (like topology selection, float type and so forth)
 grid = DiscontinuousSpectralElementGrid(
-    domain = Ω,
-    elements = (vertical = 4, horizontal = 8)
+    Ω,
+    elements = (vertical = 4, horizontal = 8),
     polynomialorder = (vertical = 1, horizontal = 5)
 )
 
@@ -34,7 +34,7 @@ flux = RoeNumericalFlux()
 κ = IsotropicLaplacian(1e-4)
 dissipation = (ρu = ν, ρθ = κ)
 
-# Construct the spatial model (implied by balance law)
+# Construct the spatial model (implied by balance law). Need SpatialModelObject
 model = ThreeDimensionalCompressibleNavierStokes(
     grid = grid,
     boundary_conditions = boundary_conditions,

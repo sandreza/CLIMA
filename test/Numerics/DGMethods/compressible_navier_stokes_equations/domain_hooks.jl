@@ -134,6 +134,7 @@ function DiscontinuousSpectralElementGrid(
 end
 
 ## 
+#=
 # perhaps return wrapper to dg_grid instead
 ClimateMachine.init()
 Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
@@ -165,4 +166,4 @@ dggrid = DiscontinuousSpectralElementGrid(
     elements = (vertical = 1, horizontal = 2),
     polynomialorder = 1, 
 )
-
+=#
