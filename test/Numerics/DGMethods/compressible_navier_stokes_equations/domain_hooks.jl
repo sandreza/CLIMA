@@ -6,7 +6,7 @@ using ClimateMachine.MPIStateArrays
 using MPI
 
 import ClimateMachine.Mesh.Grids: DiscontinuousSpectralElementGrid
-import ClimateMachine.Mesh.Topologies: StackedBrickTopology
+import ClimateMachine.Mesh.Topologies: StackedBrickTopology, BrickTopology
 
 # some convenience functions
 function convention(a::NamedTuple{(:vertical, :horizontal), T}, ::Val{3}) where T
@@ -25,11 +25,11 @@ function convention(a::Number, ::Val{2})
     return (a, a)
 end
 
-function convention(a::Tuple)
+function convention(a::Tuple, b)
     return a
 end
 
-## brick range brickbuilder
+# brick range brickbuilder
 function uniformbrickbuilder(Ω, elements)
     dimension = ndims(Ω)
     tuple_ranges = []
@@ -41,7 +41,7 @@ function uniformbrickbuilder(Ω, elements)
     return brickrange
 end
 
-##
+# Grid Constructor
 """
 function DiscontinuousSpectralElementGrid(Ω::ProductDomain; elements = nothing, polynomialorder = nothing)
 # Description 
@@ -67,7 +67,7 @@ function DiscontinuousSpectralElementGrid(
     FT=Float64,         
     mpicomm=MPI.COMM_WORLD, 
     array = ClimateMachine.array_type(),
-    topology = StackedBrickTopology
+    topology = StackedBrickTopology,
     brickbuilder = uniformbrickbuilder
     )
 
@@ -99,13 +99,13 @@ function DiscontinuousSpectralElementGrid(
 
     elements = convention(elements, Val(dimension))
     if ndims(Ω) != length(elements)
-        @error("Specified too many elements for the dimension of the domain")
+        @error("Incorrectly specified elements for the dimension of the domain")
         return nothing
     end
 
     polynomialorder = convention(polynomialorder, Val(dimension))
     if ndims(Ω) != length(polynomialorder)
-        @error("Specified too many polynomialorders for the dimension of the domain")
+        @error("Incorrectly polynomialorders for the dimension of the domain")
         return nothing
     end
 
@@ -132,45 +132,32 @@ function DiscontinuousSpectralElementGrid(
         DeviceArray = array,
         polynomialorder = polynomialorder,
     )
+
     return grid
 end
 
 ## 
 # perhaps return wrapper to dg_grid instead
-
-## 
-Ω = Periodic(0,1) × Periodic(0,1) × Periodic(0,1)
-elements = (1,1,1)
-polynomialorder = (1,1,1)
-dimension = ndims(Ω)
-
-periodicity = periodicityof(Ω)
-tuple_ranges = []
-FT = Float64
-for i in 1:dimension
-    push!(tuple_ranges,range(FT(Ω[i].a); length = elements[i] + 1,
-        stop = FT(Ω[i].b)))
-end
-brickrange = Tuple(tuple_ranges)
-ClimateMachine.init()
-mpicomm = MPI.COMM_WORLD
-topl = StackedBrickTopology(
-                        mpicomm,
-                        brickrange;
-                        periodicity = periodicity,
-                        boundary = ((1,2),(3,4),(5,6))
+Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
+dggrid = DiscontinuousSpectralElementGrid(
+    Ω, 
+    elements = (vertical = 1, horizontal = 2),
+    polynomialorder = (1, 2, 3), 
+    topology = BrickTopology,
 )
-array = Array
-grid = DiscontinuousSpectralElementGrid(
-    topl,
-    FloatType = FT,
-    DeviceArray = array,
-    polynomialorder = polynomialorder,
+#
+Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
+dggrid = DiscontinuousSpectralElementGrid(
+    Ω, 
+    elements = (vertical = 1, horizontal = 2),
+    polynomialorder = 3, 
+    topology = BrickTopology,
+)
+#
+Ω = Periodic(0,1) × Periodic(0,1)
+dggrid = DiscontinuousSpectralElementGrid(
+    Ω, 
+    elements = (vertical = 1, horizontal = 2),
+    polynomialorder = 3, 
 )
 
-##
-DiscontinuousSpectralElementGrid(Ω, 
-                                elements = (1,1,1),
-                                polynomialorder = (1,1,1), 
-                                boundary = ((1,2), (3,4), (5,6)),
-)
