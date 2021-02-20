@@ -60,10 +60,22 @@ timestepper = SSPRK22Heuns(dt = cfl_dt)
 
 # Callback vector
 callbacks = (
+    Default(),
     StateCheck(minute = 1),
     Checkpointer(iteration = 1000),
     MakieVisuals(minute = 10, directory = "/wherever/"),
 )
+
+# for example using this at some point in the code
+#=
+function createcallbacks(callbacks)
+    cvector = []
+    for callback in callbacks
+        push!(cvector, createcallback(callback))
+    end
+end
+=#
+
 
 simulationtime = (0, 10)
 simulation = Simulation(

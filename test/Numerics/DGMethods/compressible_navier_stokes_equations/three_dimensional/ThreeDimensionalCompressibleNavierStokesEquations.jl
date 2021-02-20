@@ -137,7 +137,7 @@ write out the equations here
 # Usage
     ThreeDimensionalCompressibleNavierStokesEquations()
 """
-struct ThreeDimensionalCompressibleNavierStokesEquations{
+Base.@kwdef struct ThreeDimensionalCompressibleNavierStokesEquations{
     D,
     O,
     P,
@@ -146,6 +146,7 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
     C,
     F,
     BC,
+    IVP,
 } <: BalanceLaw
     domain::D
     orientation::O
@@ -155,28 +156,10 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
     coriolis::C
     forcing::F
     boundary_conditions::BC
-    function ThreeDimensionalCompressibleNavierStokesEquations(
-        domain::D,
-        orientation::O,
-        pressure::P,
-        advection::A,
-        turbulence::T,
-        coriolis::C,
-        forcing::F,
-        boundary_conditions::BC,
-    ) where {D, O, P, A, T, C, F, BC}
-        return new{D, O, P, A, T, C, F, BC}(
-            domain,
-            orientation,
-            pressure,
-            advection,
-            turbulence,
-            coriolis,
-            forcing,
-            boundary_conditions,
-        )
-    end
+    initial_values::IVP = 1
 end
+
+ThreeDimensionalCompressibleNavierStokesEquations(a,b,c,d,e,f,g,h) = ThreeDimensionalCompressibleNavierStokesEquations(a,b,c,d,e,f,g,h,1)
 
 CNSE3D = ThreeDimensionalCompressibleNavierStokesEquations
 

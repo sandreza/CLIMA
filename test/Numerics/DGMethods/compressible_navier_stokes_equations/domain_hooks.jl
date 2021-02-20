@@ -5,7 +5,9 @@ using ClimateMachine.MPIStateArrays
 
 import ClimateMachine.Mesh.Grids: DiscontinuousSpectralElementGrid
 import ClimateMachine.Mesh.Topologies: StackedBrickTopology, BrickTopology
-
+include("domains.jl")
+include("vizinanigans.jl")
+include("bigfileofstuff.jl")
 # some convenience functions
 function convention(a::NamedTuple{(:vertical, :horizontal), T}, ::Val{3}) where T
     return (a.horizontal, a.horizontal, a.vertical)
@@ -167,3 +169,65 @@ dggrid = DiscontinuousSpectralElementGrid(
     polynomialorder = 1, 
 )
 =#
+
+
+"""
+function visualize(g::DiscontinuousSpectralElementGrid)
+# Description
+- Use Makie to visualize a 3D grid
+# Arguments
+- `g`: A DiscontinuousSpectralElementGrid
+"""
+function visualize(g::DiscontinuousSpectralElementGrid)
+    x, y, z = coordinates(g)
+
+    e = collect(1:size(x)[2])
+    nfaces = 6
+    faces = collect(1:nfaces)
+    opacities = [0.0, 0.1, 1.0]
+
+    scene, layout = layoutscene()
+
+    element = Node{Any}(e[1])
+    face = Node{Any}(faces[6])
+    opacity = Node{Any}(opacities[1])
+
+    tmpx = @lift(x[:, $element])
+    tmpy = @lift(y[:, $element])
+    tmpz = @lift(z[:, $element])
+
+    tmpxf = @lift(x[g.vmap⁻[:, $face, $element]])
+    tmpyf = @lift(y[g.vmap⁻[:, $face, $element]])
+    tmpzf = @lift(z[g.vmap⁻[:, $face, $element]])
+
+    total_color = @lift(RGBAf0(0,0,0, $opacity))
+
+    lscene = layout[1:4, 2:4] = LScene(scene)
+    GLMakie.scatter!(lscene, x[:], y[:], z[:], color = total_color, markersize = 100.0, strokewidth = 0)
+    GLMakie.scatter!(lscene, tmpx, tmpy, tmpz, color = RGBAf0(0,0,0,0.5), markersize = 100.0, strokewidth = 0, camera = cam3d!)
+    GLMakie.scatter!(lscene, tmpxf, tmpyf, tmpzf, color = RGBAf0(1,0,0,1.0), markersize = 100.0, strokewidth = 0, camera = cam3d!)
+    supertitle = layout[1,2] = Label(scene, " "^10 * " Gauss-Lobatto Points " * " "^10, textsize = 50, color = :black)
+
+    menu  = Menu(scene, options = zip(e,e))
+    menu2 = Menu(scene, options = zip(faces,faces))
+    menu3 = Menu(scene, options = zip(opacities,opacities))
+    layout[1, 1] = vgrid!(
+        Label(scene, "Element", width = nothing),
+        menu,
+        Label(scene, "Face", width = nothing),
+        menu2,
+        Label(scene, "Opacity", width = nothing),
+        menu3,
+    )
+    on(menu.selection) do s
+        element[] = s
+    end
+    on(menu2.selection) do s
+        face[] = s
+    end
+    on(menu3.selection) do s
+        opacity[] = s
+    end
+    display(scene)
+    return scene
+end
