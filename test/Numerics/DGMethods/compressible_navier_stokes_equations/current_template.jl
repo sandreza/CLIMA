@@ -13,7 +13,7 @@ boundary_conditions = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
 parameters = (
     ϵ = 0.1,
-    ρ₀ = 1.0,
+    ρₒ = 1.0,
     cₛ = 1.0, 
     cᶻ = 1.0,
     α = 0.0,
