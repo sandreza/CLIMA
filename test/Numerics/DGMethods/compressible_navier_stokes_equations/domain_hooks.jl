@@ -135,40 +135,37 @@ function DiscontinuousSpectralElementGrid(
     return grid
 end
 
-## 
-#=
-# perhaps return wrapper to dg_grid instead
-ClimateMachine.init()
-Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
-dggrid = DiscontinuousSpectralElementGrid(
-    Ω, 
-    elements = (3,4,5),
-    polynomialorder = (1, 2, 3), 
-    topology = BrickTopology,
-)
-#
-Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
-dggrid = DiscontinuousSpectralElementGrid(
-    Ω, 
-    elements = (vertical = 1, horizontal = 2),
-    polynomialorder = 3, 
-)
-#
-Ω = Periodic(0,1) × Interval(0,1) × Periodic(0,1)
-dggrid = DiscontinuousSpectralElementGrid(
-    Ω, 
-    elements = (vertical = 1, horizontal = 4),
-    polynomialorder = (vertical = 2, horizontal = 3), 
-    topology = BrickTopology,
-)
-#
-Ω = Periodic(0,1) × Periodic(0,1)
-dggrid = DiscontinuousSpectralElementGrid(
-    Ω, 
-    elements = (vertical = 1, horizontal = 2),
-    polynomialorder = 1, 
-)
-=#
+abstract type AbstractDiscretizedDomain end
+
+struct DiscretizedDomain{𝒜, ℬ, 𝒞} <:  AbstractDiscretizedDomain
+    domain::𝒜
+    resolution::ℬ
+    numerical::𝒞
+end
+
+function DiscretizedDomain(
+    Ω::ProductDomain; 
+    elements = nothing, 
+    polynomialorder = nothing, 
+    FT = Float64,         
+    mpicomm = MPI.COMM_WORLD, 
+    array = ClimateMachine.array_type(),
+    topology = StackedBrickTopology,
+    brickbuilder = uniformbrickbuilder
+    )
+
+    grid = DiscontinuousSpectralElementGrid(
+        Ω,
+        elements = elements, 
+        polynomialorder = polynomialorder, 
+        FT = FT,         
+        mpicomm = mpicomm, 
+        array = array,
+        topology = topology,
+        brickbuilder = brickbuilder
+    )
+    return DiscretizedDomain(Ω, (; elements, polynomialorder), grid)
+end
 
 
 """

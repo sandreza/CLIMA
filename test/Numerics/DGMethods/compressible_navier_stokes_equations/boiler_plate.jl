@@ -11,6 +11,8 @@ include("abstract_simulation.jl")
 
 include("./three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
 
+import Main.ThreeDimensionalCompressibleNavierStokes: ThreeDimensionalCompressibleNavierStokesEquations
+
 # import ThreeDimensionalCompressibleNavierStokes
 
 

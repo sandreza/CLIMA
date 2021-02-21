@@ -1,5 +1,5 @@
 using Printf
-import Base: getindex, *, ndims
+import Base: getindex, *, ndims, length
 import LinearAlgebra: ×
 
 abstract type AbstractDomain end
@@ -73,6 +73,9 @@ function Base.show(io::IO, Ω::ProductDomain)
 ndims(p::PointDomain) = 0
 ndims(Ω::IntervalDomain) = 1
 ndims(Ω::ProductDomain) = +(ndims.(Ω.domains)...)
+
+length(Ω::IntervalDomain) = Ω.b - Ω.a
+length(Ω::ProductDomain) = length.(Ω.domains)
 
 ×(arg1::AbstractDomain, arg2::AbstractDomain) = ProductDomain((arg1, arg2))
 ×(args::ProductDomain, arg2::AbstractDomain) = ProductDomain((args.domains..., arg2))

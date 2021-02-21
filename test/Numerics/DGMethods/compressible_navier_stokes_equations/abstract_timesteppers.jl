@@ -26,3 +26,5 @@ function calculate_dt(grid; wavespeed = nothing, diffusivity = nothing, viscocit
     end
     return cfl * minimum(Δts)
 end
+
+calculate_dt(grid::DiscretizedDomain; wavespeed = nothing, diffusivity = nothing, viscocity = nothing, cfl = 1.0) = calculate_dt(grid.numerical; wavespeed = wavespeed, diffusivity = diffusivity, viscocity = viscocity, cfl = cfl)
