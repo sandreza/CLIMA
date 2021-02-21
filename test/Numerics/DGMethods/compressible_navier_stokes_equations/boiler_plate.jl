@@ -1,6 +1,22 @@
 using ClimateMachine, MPI
 ClimateMachine.init()
 
+using ClimateMachine.ODESolvers
+using ClimateMachine.Mesh.Filters
+using ClimateMachine.VariableTemplates
+using ClimateMachine.Mesh.Grids: polynomialorders
+using ClimateMachine.Ocean
+
+using ClimateMachine.Mesh.Topologies
+using ClimateMachine.Mesh.Grids
+using ClimateMachine.DGMethods
+using ClimateMachine.BalanceLaws:
+    vars_state, Prognostic, Auxiliary, number_states
+using ClimateMachine.DGMethods.NumericalFluxes
+using ClimateMachine.MPIStateArrays
+using ClimateMachine.VTK
+
+
 include("spatial_model.jl")
 include("domain_hooks.jl")
 include("CNSE.jl")

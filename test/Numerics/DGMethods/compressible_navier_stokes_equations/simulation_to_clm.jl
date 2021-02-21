@@ -86,7 +86,7 @@ function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavi
     end
 end
 
-get_dissipation(simulation.model.physics, simulation.model.balancelaw())
+# get_dissipation(simulation.model.physics, simulation.model.balancelaw())
 
 function get_boundary_conditions(simulation::Simulation, ::ThreeDimensionalCompressibleNavierStokesEquations)
     bcs = simulation.model.boundaryconditions

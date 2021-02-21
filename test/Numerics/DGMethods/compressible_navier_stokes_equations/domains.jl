@@ -1,5 +1,5 @@
 using Printf
-import Base: getindex, *, ndims, length
+import Base: getindex, *, ndims, length, ^
 import LinearAlgebra: ×
 
 abstract type AbstractDomain end
@@ -83,6 +83,16 @@ length(Ω::ProductDomain) = length.(Ω.domains)
 ×(arg1::ProductDomain, args::ProductDomain) = ProductDomain((arg1.domains..., args.domains...))
 ×(args::AbstractDomain) = ProductDomain(args...)
 *(arg1::AbstractDomain, arg2::AbstractDomain) = arg1 × arg2  
+
+function ^(Ω::IntervalDomain, ::Val{T}) where {T <: Int}
+    Ωᵀ = Ω
+    for i in 1:(T-1)
+        Ωᵀ *= Ω
+    end
+    return Ωᵀ
+end
+
+^(Ω::IntervalDomain, b::Int) = Ω ^ Val(b)
 
 function info(Ω::ProductDomain)
     println("This is a ", ndims(Ω),"-dimensional tensor product domain.")
