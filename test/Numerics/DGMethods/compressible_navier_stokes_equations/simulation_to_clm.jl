@@ -6,6 +6,7 @@ include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/t
 
 function simulation_to_config(simulation::Simulation; name = "", Nover = 1, mpicomm = MPI.COMM_WORLD, ArrayType = ClimateMachine.array_type())
     numerical_grid = simulation.model.grid.numerical
+    # should make this a constructor to DGModel (aka replace simulation_to_model as DGModel(simulation))
     dg = simulation_to_model(simulation, simulation.model.balancelaw(), FT = Float64)
     return Config(name, dg, Nover, mpicomm, ArrayType)
 end
@@ -147,14 +148,9 @@ function ocean_init_state!(
     t,
 )
 
-    x = aux.x
-    y = aux.y
-    z = aux.z
-
-    ρ = model.pressure.ρₒ
-    state.ρ = ρ
-    state.ρu = ρ * @SVector [-0, -0, -0]
-    state.ρθ = ρ * 5
+    state.ρ = 1
+    state.ρu = @SVector [-0, -0, -0]
+    state.ρθ = 0
 
     return nothing
 end

@@ -23,6 +23,38 @@ using LinearAlgebra
 using StaticArrays
 using Logging, Printf, Dates
 
+
+coordinates(s::Simulation) = coordinates(simulation.model.grid.numerical)
+
+config = simulation_to_config(simulation)
+dg = config.dg
+Q = init_ode_state(dg, Float64(0); init_on_cpu = true)
+
+for s in keys(simulation.initialconditions)
+    x, y, z = coordinates(simulation)
+    p = simulation.model.parameters
+    ic = simulation.initialconditions[s]
+    ϕ = getproperty(Q, s)
+    set_ic!(ϕ, ic, x, y, z, p)
+end
+
+# initialized on CPU so not problem, but could do kernel launch?
+function set_ic!(ϕ, s::Number, x, y, z, p)
+    ϕ .= s
+    return nothing
+end
+
+function set_ic!(ϕ, s::Function, x, y, z, p)
+    a_, states, c_ = size(ϕ)
+    @inbounds for i in eachindex(x)
+        @inbounds for j in 1:states
+            ϕʲ = view(ϕ, :, j, :)
+            ϕʲ[i] = s(x[i],y[i],z[i],p)[j]
+        end
+    end
+    return nothing
+end
+
 function run_CNSE(
     config,
     resolution,

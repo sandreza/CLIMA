@@ -37,10 +37,12 @@ model = SpatialModel(
 
 ρu₀(x, y, z, p) = sin(x) * sin(y) 
 ρv₀(x, y, z, p) = p.ϵ * sin(x) * sin(y) 
+ρw₀(x, y, z, p) = 0.0
+momentum₀(x,y,z,p) = @SVector [ρu₀(x,y,z,p), ρv₀(x,y,z,p), ρw₀(x,y,z,p)]
 initial_conditions = (
     ρ = 1,
-    ρu = (ρu₀, ρv₀, 0),
-    ρθ = (x,y,z,p) -> state.ρ * (0.01 * z),
+    ρu = momentum₀,
+    ρθ = (x,y,z,p) -> (0.01 * z),
 )
 
 Δt = calculate_dt(grid, wavespeed = parameters.cₛ, cfl = 0.1)
