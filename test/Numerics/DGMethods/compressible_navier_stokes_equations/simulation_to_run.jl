@@ -18,25 +18,17 @@ using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.MPIStateArrays
 using ClimateMachine.VTK
 
+import ClimateMachine.Mesh.Grids: polynomialorders
+
 using MPI
 using LinearAlgebra
 using StaticArrays
 using Logging, Printf, Dates
-
-
+# include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/simulation_to_run.jl")
+# helper functions
 coordinates(s::Simulation) = coordinates(simulation.model.grid.numerical)
 
-config = simulation_to_config(simulation)
-dg = config.dg
-Q = init_ode_state(dg, Float64(0); init_on_cpu = true)
-
-for s in keys(simulation.initialconditions)
-    x, y, z = coordinates(simulation)
-    p = simulation.model.parameters
-    ic = simulation.initialconditions[s]
-    ϕ = getproperty(Q, s)
-    set_ic!(ϕ, ic, x, y, z, p)
-end
+polynomialorders(s::Simulation) = convention(simulation.model.grid.resolution.polynomialorder, Val(ndims(simulation.model.grid.domain)))
 
 # initialized on CPU so not problem, but could do kernel launch?
 function set_ic!(ϕ, s::Number, x, y, z, p)
@@ -55,60 +47,63 @@ function set_ic!(ϕ, s::Function, x, y, z, p)
     return nothing
 end
 
-function run_CNSE(
-    config,
-    resolution,
-    timespan;
-    TimeStepper = LSRK54CarpenterKennedy,
-    refDat = (),
-)
-    dg = config.dg
-    Q = init_ode_state(dg, FT(0); init_on_cpu = true)
+function create_callbacks(simulation::Simulation)
+    callbacks = simulation.callbacks
+    cbvector = [create_callback(simulation, callback) for callback in callbacks]
+    return cbvector   
+end
 
-    if config.Nover > 0
-        cutoff = CutoffFilter(dg.grid, resolution.N + config.Nover)
-        num_state_prognostic = number_states(dg.balance_law, Prognostic())
-        Filters.apply!(Q, 1:num_state_prognostic, dg.grid, cutoff)
-    end
-
-    function custom_tendency(tendency, x...; kw...)
-        dg(tendency, x...; kw...)
-        if config.Nover > 0
-            cutoff = CutoffFilter(dg.grid, resolution.N + config.Nover)
-            num_state_prognostic = number_states(dg.balance_law, Prognostic())
-            Filters.apply!(tendency, 1:num_state_prognostic, dg.grid, cutoff)
-        end
-    end
-
-    println("time step is " * string(timespan.dt))
-    println("time end is " * string(timespan.timeend))
-    odesolver = TimeStepper(custom_tendency, Q, dt = timespan.dt, t0 = 0)
-
-    vtkstep = 0
-    cbvector = make_callbacks(
-        vtkpath,
-        vtkstep,
-        timespan,
-        config.mpicomm,
-        odesolver,
-        dg,
-        dg.balance_law,
-        Q,
-        filename = config.name,
-    )
-
-    eng0 = norm(Q)
-    @info @sprintf """Starting
-    norm(Q₀) = %.16e
-    ArrayType = %s""" eng0 config.ArrayType
-
-    solve!(Q, odesolver; timeend = timespan.timeend, callbacks = cbvector)
-
-    ## Check results against reference
-    ClimateMachine.StateCheck.scprintref(cbvector[end])
-    if length(refDat) > 0
-        @test ClimateMachine.StateCheck.scdocheck(cbvector[end], refDat)
-    end
-
+function create_callback(simulation::Simulation, callback::Default)
     return nothing
 end
+
+config = simulation_to_config(simulation)
+dg = config.dg
+Q = init_ode_state(dg, Float64(0); init_on_cpu = true)
+
+for s in keys(simulation.initialconditions)
+    x, y, z = coordinates(simulation)
+    p = simulation.model.parameters
+    ic = simulation.initialconditions[s]
+    ϕ = getproperty(Q, s)
+    set_ic!(ϕ, ic, x, y, z, p)
+end
+
+Ns = polynomialorders(simulation)
+Nover = (0, 0, 0)
+if sum(Nover) > 0
+    cutoff = CutoffFilter(dg.grid, Ns .- (Nover .- 1))
+    num_state_prognostic = number_states(dg.balance_law, Prognostic())
+    Filters.apply!(Q, 1:num_state_prognostic, dg.grid, cutoff)
+end
+
+function custom_tendency(tendency, x...; kw...)
+    dg(tendency, x...; kw...)
+    if sum(Nover) > 0
+        cutoff = CutoffFilter(dg.grid, Ns .- (Nover .- 1))
+        num_state_prognostic = number_states(dg.balance_law, Prognostic())
+        Filters.apply!(tendency, 1:num_state_prognostic, dg.grid, cutoff)
+    end
+end
+
+Δt = simulation.timestepper.timestep
+timestepper = simulation.timestepper.method
+
+odesolver = timestepper(custom_tendency, Q, dt = Δt, t0 = simulation.simulationtime[1])
+
+cbvector = create_callbacks(simulation)
+
+solve!(Q, odesolver; timeend = simulation.simulationtime[2], callbacks = cbvector)
+
+##
+BC = (
+    ClimateMachine.Ocean.OceanBC(Impenetrable(NoSlip()), Insulating()),
+    ClimateMachine.Ocean.OceanBC(
+        Impenetrable(KinematicStress(
+            (state, aux, t) -> (@SVector [0.01 / state.ρ, -0, -0]),
+        )),
+        TemperatureFlux((state, aux, t) -> (0.1)),
+    ),
+)
+
+dg.balance_law.boundary_conditions[2]

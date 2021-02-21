@@ -1,6 +1,6 @@
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/boiler_plate.jl")
 
-Ω = Periodic(-2π, 2π)^2 × Interval(-2π, 2π)
+Ω = Interval(-2π, 2π)^3 # Periodic(-2π, 2π)^2 × Interval(-2π, 2π)
 grid = DiscretizedDomain(
     Ω,
     elements = (vertical = 1, horizontal = 1),

@@ -96,7 +96,7 @@ function get_boundary_conditions(simulation::Simulation, ::ThreeDimensionalCompr
     southnorth = (check_bc(bcs, :south), check_bc(bcs, :north))
     bottomtop  = (check_bc(bcs, :bottom), check_bc(bcs, :top))
 
-    return (westeast, southnorth, bottomtop)
+    return (westeast... , southnorth... , bottomtop...)
 end
 
 function check_bc(bcs, label)
@@ -127,7 +127,7 @@ end
 import ClimateMachine.Ocean: ocean_init_aux!, ocean_init_state!
 
 function ocean_init_aux!(
-    ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
+    ::ThreeDimensionalCompressibleNavierStokesEquations,
     aux,
     geom,
 )
@@ -141,7 +141,7 @@ function ocean_init_aux!(
 end
 
 function ocean_init_state!(
-    model::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
+    model::ThreeDimensionalCompressibleNavierStokesEquations,
     state,
     aux,
     localgeo,
