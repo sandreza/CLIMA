@@ -1,12 +1,12 @@
 # Takes a simulation object and constructs something that works with ClimateMachine
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/current_template.jl")
+include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/box.jl")
 
 # this does not seem like the right idea
 ThreeDimensionalCompressibleNavierStokesEquations() = ThreeDimensionalCompressibleNavierStokesEquations(1,1,1,1,1,1,1,1,1)
 # first construction config
 
 function simulation_to_config(simulation::Simulation; name = "", Nover = 1, mpicomm = MPI.COMM_WORLD, ArrayType = ClimateMachine.array_type())
-    println("hello")
     numerical_grid = simulation.model.grid.numerical
     dg = simulation_to_model(simulation, simulation.model.balancelaw(), FT = eltype(grid))
     return Config(name, dg, Nover, mpicomm, ArrayType)
@@ -35,6 +35,8 @@ function simulation_to_model(simulation::Simulation, balancelaw::ThreeDimensiona
     μ = dissipations.μ
     ν = dissipations.ν
     κ = dissipations.κ
+
+    boundary_conditions = ()
 
     model = ThreeDimensionalCompressibleNavierStokesEquations(
         (Lˣ, Lʸ, Lᶻ),
@@ -71,14 +73,14 @@ end
 ##
 function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavierStokesEquations)
     ν = κ = μ = 0
-    if :dissipation in keys(physics)
-        if :ρθ in keys(physics.dissipation)
+    if haskey(physics, :dissipation)
+        if haskey(physics.dissipation. :ρθ)
             κ = physics.dissipation.ρθ.model
         end
-        if :ρu in keys(physics.dissipation)
+        if haskey(physics.dissipation, :ρu)
             ν = physics.dissipation.ρu.model
         end
-        if :ρ in keys(physics.dissipation)
+        if haskey(physics.dissipation, :ρ)
             μ = physics.dissipation.ρ.model
         end
         return (;ν, κ, μ) 
@@ -88,6 +90,41 @@ function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavi
 end
 
 get_dissipation(simulation.model.physics, simulation.model.balancelaw())
+
+function get_boundary_conditions(simulation::Simulation, ::ThreeDimensionalCompressibleNavierStokesEquations)
+    bcs = simulation.model.boundaryconditions
+
+    westeast   = (checkbc(bcs, :west), checkbc(bcs, :east))
+    southnorth = (checkbc(bcs, :south), checkbc(bcs, :north))
+    bottomtop  = (checkbc(bcs, :bottom), checkbc(bcs, :top))
+
+    return (westeast, southnorth, bottomtop)
+end
+
+function check_bc(bcs, label)
+    bctype = ClimateMachine.Ocean.OceanBC
+    ρubc = check_bc(bcs, Val(:ρu), label)
+    ρθbc = check_bc(bcs, Val(:ρθ), label)
+    return bctype(ρubc, ρθbc)
+end
+
+function check_bc(bcs, ::Val{:ρθ}, label)
+    if haskey(bcs, :ρθ)
+        if haskey(bcs[:ρθ], label)
+            return bcs[:ρθ][label]
+        end
+    end
+    return Insulating()
+end
+
+function check_bc(bcs, ::Val{:ρu}, label)
+    if haskey(bcs, :ρu)
+        if haskey(bcs[:ρu], label)
+            return bcs[:ρu][label]
+        end
+    end
+    return Impenetrable(FreeSlip())
+end
 
 function ocean_init_aux!(
     ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
