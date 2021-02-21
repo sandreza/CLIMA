@@ -7,31 +7,27 @@ grid = DiscretizedDomain(
     polynomialorder = (vertical = 1, horizontal = 1)
 )
 
-# Boundary Conditions
 ρu_bcs = (bottom = NoSlip(), top = FreeSlip())
 ρθ_bcs = (bottom = TemperatureFlux(0.00), top = TemperatureFlux(1e-6))
-# combine
 boundary_conditions = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
-# parameters nobs,
 parameters = (
     ϵ = 0.1,
     ρ₀ = 1.0,
     cₛ = 1.0, 
     cᶻ = 1.0,
+    α = 0.0,
+    g = 0.0,
 )
 
-# Numerics Nobs
 flux = RoeNumericalFlux()
 
-# Dissipation models
 ν = Laplacian(1e-2)
 κ = Laplacian(1e-4)
 dissipation = (ρu = ν, ρθ = κ)
 
-# Construct the spatial model (implied by balance law). Need SpatialModelObject
 model = SpatialModel(
-    balancelaw = ThreeDimensionalCompressibleNavierStokes.CNSE3D,
+    balancelaw = ThreeDimensionalCompressibleNavierStokesEquations,
     physics = (;dissipation, ),
     numerics = (;flux),
     grid = grid,

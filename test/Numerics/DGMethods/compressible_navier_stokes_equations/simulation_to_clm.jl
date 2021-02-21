@@ -28,6 +28,7 @@ function simulation_to_model(simulation::Simulation, balancelaw::ThreeDimensiona
                 ρₒ = params.ρₒ,
             )
     end
+
     Lˣ, Lʸ, Lᶻ = length(simulation.model.grid.domain)
 
     dissipations = get_dissipation(simulation.model.physics, balancelaw)
@@ -53,6 +54,8 @@ function simulation_to_model(simulation::Simulation, balancelaw::ThreeDimensiona
         boundary_conditions,
     )
 
+    numerical_flux_first_order = simulation.model.numerics.flux # should be a function
+
     dg = DGModel(
         model,
         grid,
@@ -68,15 +71,15 @@ end
 ##
 function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavierStokesEquations)
     ν = κ = μ = 0
-    if :dissipation in keys(simulation.model.physics)
-        if :ρθ in keys(simulation.model.physics.dissipation)
-            κ = simulation.model.physics.dissipation.ρθ.model
+    if :dissipation in keys(physics)
+        if :ρθ in keys(physics.dissipation)
+            κ = physics.dissipation.ρθ.model
         end
-        if :ρu in keys(simulation.model.physics.dissipation)
-            ν = simulation.model.physics.dissipation.ρu.model
+        if :ρu in keys(physics.dissipation)
+            ν = physics.dissipation.ρu.model
         end
-        if :ρ in keys(simulation.model.physics.dissipation)
-            μ = simulation.model.physics.dissipation.ρ.model
+        if :ρ in keys(physics.dissipation)
+            μ = physics.dissipation.ρ.model
         end
         return (;ν, κ, μ) 
     else
