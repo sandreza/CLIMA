@@ -1,70 +1,6 @@
-using Test
-using StaticArrays
-using LinearAlgebra
-
-using ClimateMachine.VariableTemplates
-using ClimateMachine.Mesh.Geometry
-using ClimateMachine.DGMethods
-using ClimateMachine.DGMethods.NumericalFluxes
-using ClimateMachine.BalanceLaws
-using ClimateMachine.Mesh.Geometry: LocalGeometry
-using ClimateMachine.MPIStateArrays: MPIStateArray
-
-import ClimateMachine.BalanceLaws:
-    vars_state,
-    init_state_prognostic!,
-    init_state_auxiliary!,
-    compute_gradient_argument!,
-    compute_gradient_flux!,
-    flux_first_order!,
-    flux_second_order!,
-    source!,
-    wavespeed,
-    boundary_conditions,
-    boundary_state!
-import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
-
-×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
-⋅(a::SVector, b::SVector) = StaticArrays.dot(a, b)
-⊗(a::SVector, b::SVector) = a * b'
-
-abstract type TurbulenceClosure end
-struct ConstantViscosity{T} <: TurbulenceClosure
-    μ::T
-    ν::T
-    κ::T
-    function ConstantViscosity{T}(;
-        μ = T(1e-6),   # m²/s
-        ν = T(1e-6),   # m²/s
-        κ = T(1e-6),   # m²/s
-    ) where {T <: AbstractFloat}
-        return new{T}(μ, ν, κ)
-    end
-end
-
-abstract type CoriolisForce end
-struct fPlaneCoriolis{T} <: CoriolisForce
-    fₒ::T
-    β::T
-    function fPlaneCoriolis{T}(;
-        fₒ = T(1e-4), # Hz
-        β = T(1e-11), # Hz/m
-    ) where {T <: AbstractFloat}
-        return new{T}(fₒ, β)
-    end
-end
-
-abstract type Forcing end
-struct Buoyancy{T} <: Forcing
-    α::T # 1/K
-    g::T # m/s²
-    function Buoyancy{T}(; α = T(2e-4), g = T(10)) where {T <: AbstractFloat}
-        return new{T}(α, g)
-    end
-end
-
-abstract type AdvectionTerm end
-struct NonLinearAdvectionTerm <: AdvectionTerm end
+include("../boilerplate.jl")
+include("../abstractions.jl")
+include("../FluidBC.jl")
 
 """
     ThreeDimensionalCompressibleNavierStokesEquations <: BalanceLaw
@@ -462,10 +398,6 @@ function numerical_flux_first_order!(
 
     return nothing
 end
-
-## Boundary Conditions
-
-include("../FluidBC.jl")
 
 boundary_conditions(model::CNSE3D) = model.boundary_conditions
 

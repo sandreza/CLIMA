@@ -1,70 +1,6 @@
-using Test
-using StaticArrays
-using LinearAlgebra
-
-using ClimateMachine.VariableTemplates
-using ClimateMachine.Mesh.Geometry
-using ClimateMachine.DGMethods
-using ClimateMachine.DGMethods.NumericalFluxes
-using ClimateMachine.BalanceLaws
-using ClimateMachine.Mesh.Geometry: LocalGeometry
-using ClimateMachine.MPIStateArrays: MPIStateArray
-
-import ClimateMachine.BalanceLaws:
-    vars_state,
-    init_state_prognostic!,
-    init_state_auxiliary!,
-    compute_gradient_argument!,
-    compute_gradient_flux!,
-    flux_first_order!,
-    flux_second_order!,
-    source!,
-    wavespeed,
-    boundary_conditions,
-    boundary_state!
-import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
-
-×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
-⋅(a::SVector, b::SVector) = StaticArrays.dot(a, b)
-⊗(a::SVector, b::SVector) = a * b'
-
-abstract type TurbulenceClosure end
-struct LinearDrag{T} <: TurbulenceClosure
-    λ::T
-end
-struct ConstantViscosity{T} <: TurbulenceClosure
-    ν::T
-    κ::T
-    function ConstantViscosity{T}(;
-        ν = FT(1e-6),   # m²/s
-        κ = FT(1e-6),   # m²/s
-    ) where {T <: AbstractFloat}
-        return new{T}(ν, κ)
-    end
-end
-
-abstract type CoriolisForce end
-struct fPlaneCoriolis{T} <: CoriolisForce
-    fₒ::T
-    β::T
-    function fPlaneCoriolis{T}(;
-        fₒ = T(1e-4), # Hz
-        β = T(1e-11), # Hz/m
-    ) where {T <: AbstractFloat}
-        return new{T}(fₒ, β)
-    end
-end
-
-abstract type Forcing end
-struct WindStress{T} <: Forcing
-    τₒ::T
-    function WindStress{T}(; τₒ = T(1e-4)) where {T <: AbstractFloat}
-        return new{T}(τₒ)
-    end
-end
-
-abstract type AdvectionTerm end
-struct NonLinearAdvectionTerm <: AdvectionTerm end
+include("../boilerplate.jl")
+include("../abstractions.jl")
+include("../FluidBC.jl")
 
 """
     TwoDimensionalCompressibleNavierStokesEquations <: BalanceLaw
@@ -498,8 +434,6 @@ function numerical_flux_first_order!(
     return nothing
 end
 
-include("../FluidBC.jl")
-
 boundary_conditions(model::CNSE2D) = model.boundary_conditions
 
 """
@@ -521,7 +455,6 @@ splits boundary condition application into velocity
     return cnse_boundary_state!(nf, bc.momentum, m, m.turbulence, args...)
     return cnse_boundary_state!(nf, bc.temperature, m, args...)
 end
-
 
 include("bc_momentum.jl")
 include("bc_tracer.jl")
