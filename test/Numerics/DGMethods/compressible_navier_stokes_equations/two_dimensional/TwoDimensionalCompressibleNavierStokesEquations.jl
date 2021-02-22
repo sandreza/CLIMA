@@ -1,18 +1,12 @@
-module TwoDimensionalCompressibleNavierStokes
-
-export TwoDimensionalCompressibleNavierStokesEquations
-
 using Test
 using StaticArrays
 using LinearAlgebra
 
-using ClimateMachine.Ocean
 using ClimateMachine.VariableTemplates
 using ClimateMachine.Mesh.Geometry
 using ClimateMachine.DGMethods
 using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.BalanceLaws
-using ClimateMachine.Ocean: coriolis_parameter
 using ClimateMachine.Mesh.Geometry: LocalGeometry
 using ClimateMachine.MPIStateArrays: MPIStateArray
 
@@ -28,11 +22,6 @@ import ClimateMachine.BalanceLaws:
     wavespeed,
     boundary_conditions,
     boundary_state!
-import ClimateMachine.Ocean:
-    ocean_init_state!,
-    ocean_init_aux!,
-    ocean_boundary_state!,
-    _ocean_boundary_state!
 import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
 
 ×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
@@ -67,12 +56,15 @@ struct fPlaneCoriolis{T} <: CoriolisForce
 end
 
 abstract type Forcing end
-struct KinematicStress{T} <: Forcing
+struct WindStress{T} <: Forcing
     τₒ::T
-    function KinematicStress{T}(; τₒ = T(1e-4)) where {T <: AbstractFloat}
+    function WindStress{T}(; τₒ = T(1e-4)) where {T <: AbstractFloat}
         return new{T}(τₒ)
     end
 end
+
+abstract type AdvectionTerm end
+struct NonLinearAdvectionTerm <: AdvectionTerm end
 
 """
     TwoDimensionalCompressibleNavierStokesEquations <: BalanceLaw
@@ -129,7 +121,7 @@ function vars_state(m::CNSE2D, ::Prognostic, T)
 end
 
 function init_state_prognostic!(m::CNSE2D, state::Vars, aux::Vars, localgeo, t)
-    ocean_init_state!(m, state, aux, localgeo, t)
+    cnse_init_state!(m, state, aux, localgeo, t)
 end
 
 function vars_state(m::CNSE2D, ::Auxiliary, T)
@@ -147,7 +139,7 @@ function init_state_auxiliary!(
 )
     init_state_auxiliary!(
         model,
-        (model, aux, tmp, geom) -> ocean_init_aux!(model, aux, geom),
+        (model, aux, tmp, geom) -> cnse_init_aux!(model, aux, geom),
         state_auxiliary,
         grid,
         direction,
@@ -364,7 +356,7 @@ forcing_term!(::CNSE2D, ::Nothing, _...) = nothing
 
 @inline function forcing_term!(
     model::CNSE2D,
-    forcing::KinematicStress,
+    forcing::WindStress,
     source,
     state,
     aux,
@@ -506,29 +498,30 @@ function numerical_flux_first_order!(
     return nothing
 end
 
+include("../BoundaryConditions.jl")
+
 boundary_conditions(model::CNSE2D) = model.boundary_conditions
 
 """
     boundary_state!(nf, ::CNSE2D, args...)
 
 applies boundary conditions for the hyperbolic fluxes
-dispatches to a function in OceanBoundaryConditions
+dispatches to a function in CNSEBoundaryConditions
 """
 @inline function boundary_state!(nf, bc, model::CNSE2D, args...)
-    return _ocean_boundary_state!(nf, bc, model, args...)
+    return _cnse_boundary_state!(nf, bc, model, args...)
 end
 
 """
-    ocean_boundary_state!(nf, bc::OceanBC, ::CNSE2D)
+    CNSE_boundary_state!(nf, bc::CNSEBC, ::CNSE2D)
 
 splits boundary condition application into velocity
 """
-@inline function ocean_boundary_state!(nf, bc::OceanBC, m::CNSE2D, args...)
-    return ocean_boundary_state!(nf, bc.velocity, m, m.turbulence, args...)
-    return ocean_boundary_state!(nf, bc.temperature, m, args...)
+@inline function cnse_boundary_state!(nf, bc::CNSEBC, m::CNSE2D, args...)
+    return cnse_boundary_state!(nf, bc.momentum, m, m.turbulence, args...)
+    return cnse_boundary_state!(nf, bc.temperature, m, args...)
 end
 
-include("bc_velocity.jl")
+
+include("bc_momentum.jl")
 include("bc_tracer.jl")
-
-end

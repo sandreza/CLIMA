@@ -7,7 +7,6 @@ using ClimateMachine.ODESolvers
 using ClimateMachine.Mesh.Filters
 using ClimateMachine.VariableTemplates
 using ClimateMachine.Mesh.Grids: polynomialorders
-using ClimateMachine.Ocean
 
 using ClimateMachine.Mesh.Topologies
 using ClimateMachine.Mesh.Grids

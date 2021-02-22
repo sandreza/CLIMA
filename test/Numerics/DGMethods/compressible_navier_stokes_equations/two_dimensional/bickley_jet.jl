@@ -36,13 +36,10 @@ function Config(
         polynomialorder = resolution.N + Nover,
     )
 
-    model = TwoDimensionalCompressibleNavierStokes.CNSE2D{FT}(
+    model = CNSE2D{FT}(
         (domain.Lˣ, domain.Lʸ),
-        ClimateMachine.Ocean.NonLinearAdvectionTerm(),
-        TwoDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
-            ν = params.ν,
-            κ = params.κ,
-        ),
+        NonLinearAdvectionTerm(),
+        ConstantViscosity{FT}(ν = params.ν, κ = params.κ),
         nothing,
         nothing,
         boundary_conditons;
@@ -61,15 +58,7 @@ function Config(
     return Config(name, dg, Nover, mpicomm, ArrayType)
 end
 
-import ClimateMachine.Ocean: ocean_init_state!, ocean_init_aux!
-
-function ocean_init_state!(
-    ::TwoDimensionalCompressibleNavierStokes.CNSE2D,
-    state,
-    aux,
-    localgeo,
-    t,
-)
+function cnse_init_state!(::CNSE2D, state, aux, localgeo, t)
     ϵ = 0.1 # perturbation magnitude
     l = 0.5 # Gaussian width
     k = 0.5 # Sinusoidal wavenumber
@@ -95,11 +84,7 @@ function ocean_init_state!(
     return nothing
 end
 
-function ocean_init_aux!(
-    ::TwoDimensionalCompressibleNavierStokes.CNSE2D,
-    aux,
-    geom,
-)
+function cnse_init_aux!(::CNSE2D, aux, geom)
     @inbounds begin
         aux.x = geom.coord[1]
         aux.y = geom.coord[2]

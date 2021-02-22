@@ -4,7 +4,7 @@ include("bickley_jet.jl")
 ClimateMachine.init()
 
 const FT = Float64
-const vtkpath = nothing
+vtkpath = nothing
 #################
 # RUN THE TESTS #
 #################
@@ -93,7 +93,7 @@ const vtkpath = nothing
                 Nover = setup.Nover,
                 periodicity = setup.periodicity,
                 boundary = setup.boundary,
-                boundary_conditons = (ClimateMachine.Ocean.OceanBC(
+                boundary_conditons = (CNSEBC(
                     Impenetrable(FreeSlip()),
                     Insulating(),
                 ),),
