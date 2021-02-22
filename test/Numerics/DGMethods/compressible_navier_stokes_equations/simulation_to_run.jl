@@ -26,6 +26,7 @@ using StaticArrays
 using Logging, Printf, Dates
 # include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/simulation_to_run.jl")
 # helper functions
+
 coordinates(s::Simulation) = coordinates(simulation.model.grid.numerical)
 
 polynomialorders(s::Simulation) = convention(simulation.model.grid.resolution.polynomialorder, Val(ndims(simulation.model.grid.domain)))
@@ -92,10 +93,15 @@ timestepper = simulation.timestepper.method
 odesolver = timestepper(custom_tendency, Q, dt = Δt, t0 = simulation.simulationtime[1])
 
 cbvector = create_callbacks(simulation)
-
-solve!(Q, odesolver; timeend = simulation.simulationtime[2], callbacks = cbvector)
+##
+if cbvector == nothing
+    solve!(Q, odesolver; timeend = simulation.simulationtime[2])
+else
+    solve!(Q, odesolver; timeend = simulation.simulationtime[2], callbacks = cbvector)
+end
 
 ##
+#=
 BC = (
     ClimateMachine.Ocean.OceanBC(Impenetrable(NoSlip()), Insulating()),
     ClimateMachine.Ocean.OceanBC(
@@ -107,3 +113,6 @@ BC = (
 )
 
 dg.balance_law.boundary_conditions[2]
+=#
+##
+# include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/run_box.jl")

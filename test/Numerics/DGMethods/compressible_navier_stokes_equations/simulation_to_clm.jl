@@ -127,7 +127,7 @@ end
 import ClimateMachine.Ocean: ocean_init_aux!, ocean_init_state!
 
 function ocean_init_aux!(
-    ::ThreeDimensionalCompressibleNavierStokesEquations,
+    ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
     aux,
     geom,
 )
@@ -141,7 +141,7 @@ function ocean_init_aux!(
 end
 
 function ocean_init_state!(
-    model::ThreeDimensionalCompressibleNavierStokesEquations,
+    model::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
     state,
     aux,
     localgeo,

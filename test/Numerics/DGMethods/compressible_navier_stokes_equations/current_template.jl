@@ -1,6 +1,6 @@
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/boiler_plate.jl")
 
-Ω = Interval(-2π, 2π)^3 # Periodic(-2π, 2π)^2 × Interval(-2π, 2π)
+Ω = Periodic(-2π, 2π)^2 × Interval(-2π, 2π)
 grid = DiscretizedDomain(
     Ω,
     elements = (vertical = 1, horizontal = 1),
@@ -8,7 +8,7 @@ grid = DiscretizedDomain(
 )
 
 ρu_bcs = (bottom = Impenetrable(NoSlip()), top = Impenetrable(FreeSlip()))
-ρθ_bcs = (bottom = TemperatureFlux(0.00), top = TemperatureFlux(1e-6))
+ρθ_bcs = (bottom = Insulating(), top = TemperatureFlux((state, aux, t) -> 1e-6))
 boundary_conditions = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
 parameters = (
