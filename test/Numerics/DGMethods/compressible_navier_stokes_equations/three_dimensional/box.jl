@@ -1,6 +1,6 @@
 include("../CNSE.jl")
 include("ThreeDimensionalCompressibleNavierStokesEquations.jl")
-
+# Config("", (Nˣ = 1, Nʸ=1, Nᶻ = 1, N = 1), (Lˣ = 1, Lʸ = 1, Lᶻ = 1), (cₛ=1, cᶻ=1, ρₒ=1, μ=0, ν=0, κ=0, α=0, g=0))
 function Config(
     name,
     resolution,

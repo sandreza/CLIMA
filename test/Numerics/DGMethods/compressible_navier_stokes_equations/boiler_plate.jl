@@ -21,6 +21,8 @@ using StaticArrays
 using Logging, Printf, Dates
 
 
+
+
 include("spatial_model.jl")
 include("domain_hooks.jl")
 include("CNSE.jl")
@@ -31,17 +33,10 @@ include("bigfileofstuff.jl")
 include("abstract_simulation.jl")
 
 include("./three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
-
-
-ThreeDimensionalCompressibleNavierStokes.CNSE3D() = ThreeDimensionalCompressibleNavierStokesEquations(1.0,1.0,1.0,1.0,1.0, 1.0, 1.0, 1.0)
+include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/run_box.jl")
+# this does not seem like the right idea
+ThreeDimensionalCompressibleNavierStokes.CNSE3D() = ThreeDimensionalCompressibleNavierStokes.CNSE3D(1.0,1.0,1.0,1.0,1.0, 1.0, 1.0, 1.0)
 ThreeDimensionalCompressibleNavierStokesEquations = ThreeDimensionalCompressibleNavierStokes.CNSE3D
 
 include("simulation_to_clm.jl")
 include("simulation_to_run.jl")
-
-
-
-# this does not seem like the right idea
-
-
-# include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/boiler_plate.jl")

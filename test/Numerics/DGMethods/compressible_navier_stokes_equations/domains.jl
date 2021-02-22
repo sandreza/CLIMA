@@ -84,15 +84,13 @@ length(Ω::ProductDomain) = length.(Ω.domains)
 ×(args::AbstractDomain) = ProductDomain(args...)
 *(arg1::AbstractDomain, arg2::AbstractDomain) = arg1 × arg2  
 
-function ^(Ω::IntervalDomain, ::Val{T}) where {T <: Int}
+function ^(Ω::IntervalDomain, T::Int)
     Ωᵀ = Ω
     for i in 1:(T-1)
         Ωᵀ *= Ω
     end
     return Ωᵀ
 end
-
-^(Ω::IntervalDomain, b::Int) = Ω ^ Val(b)
 
 function info(Ω::ProductDomain)
     println("This is a ", ndims(Ω),"-dimensional tensor product domain.")

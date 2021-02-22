@@ -89,7 +89,7 @@ let
         boundary = ((0, 0), (0, 0), (1, 2)),
         boundary_conditions = BC,
     )
-
+    #=
     tic = Base.time()
 
     run_CNSE(config, resolution, timespan; TimeStepper = SSPRK22Heuns)
@@ -97,4 +97,5 @@ let
     toc = Base.time()
     time = toc - tic
     println(time)
+    =#
 end

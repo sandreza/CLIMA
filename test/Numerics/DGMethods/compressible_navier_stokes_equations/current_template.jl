@@ -1,5 +1,5 @@
-include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/boiler_plate.jl")
-
+include("boiler_plate.jl")
+# include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/current_template.jl")
 Ω = Periodic(-2π, 2π)^2 × Interval(-2π, 2π)
 grid = DiscretizedDomain(
     Ω,
@@ -25,9 +25,9 @@ flux = RoeNumericalFlux()
 ν = Laplacian(1e-2)
 κ = Laplacian(1e-4)
 dissipation = (ρu = ν, ρθ = κ)
-
+# ThreeDimensionalCompressibleNavierStokesEquations
 model = SpatialModel(
-    balancelaw = ThreeDimensionalCompressibleNavierStokesEquations,
+    balancelaw = ThreeDimensionalCompressibleNavierStokes.CNSE3D,
     physics = (;dissipation, ),
     numerics = (;flux),
     grid = grid,

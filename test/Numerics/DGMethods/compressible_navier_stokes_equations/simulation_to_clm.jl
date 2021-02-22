@@ -1,23 +1,12 @@
 # Takes a simulation object and constructs something that works with ClimateMachine
-# include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/current_template.jl")
-# include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/box.jl")
 
-# first construction config
-#=
-function simulation_to_config(simulation::Simulation; name = "", Nover = 1, mpicomm = MPI.COMM_WORLD, ArrayType = ClimateMachine.array_type())
-    numerical_grid = simulation.model.grid.numerical
-    # should make this a constructor to DGModel (aka replace simulation_to_model as DGModel(simulation))
-    dg = DGModel(simulation)
-    return Config(name, dg, Nover, mpicomm, ArrayType)
-end
-=#
 function DGModel(simulation::Simulation)
     FT = eltype(simulation.model.grid.numerical.vgeo)
     dg = simulation_to_dgmodel(simulation, simulation.model.balancelaw(), FT = FT)
     return dg
 end
 
-function simulation_to_dgmodel(simulation::Simulation, balancelaw::ThreeDimensionalCompressibleNavierStokesEquations; FT = Float64)
+function simulation_to_dgmodel(simulation::Simulation, balancelaw::ThreeDimensionalCompressibleNavierStokes.CNSE3D; FT = Float64)
     params = simulation.model.parameters
     if (params.cᶻ == params.cₛ)
         pressure =
@@ -43,7 +32,7 @@ function simulation_to_dgmodel(simulation::Simulation, balancelaw::ThreeDimensio
 
     boundary_conditions = get_boundary_conditions(simulation, balancelaw)
 
-    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D(
+    model = simulation.model.balancelaw(
         (Lˣ, Lʸ, Lᶻ),
         ClimateMachine.Orientations.FlatOrientation(),
         pressure,
@@ -73,7 +62,7 @@ function simulation_to_dgmodel(simulation::Simulation, balancelaw::ThreeDimensio
     return dg
 end
 
-function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavierStokesEquations)
+function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavierStokes.CNSE3D)
     ν = κ = μ = 0
     if haskey(physics, :dissipation)
         if haskey(physics.dissipation, :ρθ)
@@ -91,7 +80,7 @@ function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavi
     end
 end
 
-function get_boundary_conditions(simulation::Simulation, ::ThreeDimensionalCompressibleNavierStokesEquations)
+function get_boundary_conditions(simulation::Simulation, ::ThreeDimensionalCompressibleNavierStokes.CNSE3D)
     bcs = simulation.model.boundaryconditions
 
     westeast   = (check_bc(bcs, :west), check_bc(bcs, :east))
