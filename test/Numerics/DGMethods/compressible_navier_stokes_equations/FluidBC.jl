@@ -4,12 +4,12 @@ using ClimateMachine.BalanceLaws
 using ClimateMachine.DGMethods.NumericalFluxes
 
 """
-    CNSEBC(momentum    = Impenetrable(NoSlip())
+    FluidBC(momentum    = Impenetrable(NoSlip())
             temperature = Insulating())
 
 The standard boundary condition for CNSEModel. The default options imply a "no flux" boundary condition.
 """
-Base.@kwdef struct CNSEBC{M, T}
+Base.@kwdef struct FluidBC{M, T}
     momentum::M = Impenetrable(NoSlip())
     temperature::T = Insulating()
 end

@@ -93,7 +93,7 @@ vtkpath = nothing
                 Nover = setup.Nover,
                 periodicity = setup.periodicity,
                 boundary = setup.boundary,
-                boundary_conditons = (CNSEBC(
+                boundary_conditons = (FluidBC(
                     Impenetrable(FreeSlip()),
                     Insulating(),
                 ),),

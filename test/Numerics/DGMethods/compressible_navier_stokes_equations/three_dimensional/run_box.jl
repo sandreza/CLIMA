@@ -1,6 +1,6 @@
 #!/usr/bin/env julia --project
 
-include("box.jl")
+include("config_box.jl")
 ClimateMachine.init()
 
 const FT = Float64
@@ -8,15 +8,7 @@ const FT = Float64
 #################
 # Initial State #
 #################
-import ClimateMachine.Ocean: ocean_init_state!
-
-function ocean_init_state!(
-    model::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
-    state,
-    aux,
-    localgeo,
-    t,
-)
+function cnse_init_state!(model::CNSE3D, state, aux, localgeo, t)
 
     x = aux.x
     y = aux.y
@@ -68,8 +60,8 @@ let
     params = (; cₛ, ρₒ, μ, ν, κ, α, g)
 
     BC = (
-        ClimateMachine.Ocean.OceanBC(Impenetrable(NoSlip()), Insulating()),
-        ClimateMachine.Ocean.OceanBC(
+        FluidBC(Impenetrable(NoSlip()), Insulating()),
+        FluidBC(
             Impenetrable(KinematicStress(
                 (state, aux, t) -> (@SVector [0.01 / state.ρ, -0, -0]),
             )),

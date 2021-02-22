@@ -38,19 +38,12 @@ function Config(
         polynomialorder = resolution.N + Nover,
     )
 
-    model = ThreeDimensionalCompressibleNavierStokes.CNSE3D{FT}(
+    model = CNSE3D{FT}(
         (domain.Lˣ, domain.Lʸ, domain.Lᶻ),
-        ClimateMachine.Ocean.NonLinearAdvectionTerm(),
-        ThreeDimensionalCompressibleNavierStokes.ConstantViscosity{FT}(
-            μ = params.μ,
-            ν = params.ν,
-            κ = params.κ,
-        ),
+        NonLinearAdvectionTerm(),
+        ConstantViscosity{FT}(μ = params.μ, ν = params.ν, κ = params.κ),
         nothing,
-        ThreeDimensionalCompressibleNavierStokes.Buoyancy{FT}(
-            α = params.α,
-            g = params.g,
-        ),
+        Buoyancy{FT}(α = params.α, g = params.g),
         boundary_conditons;
         cₛ = params.cₛ,
         ρₒ = params.ρₒ,
@@ -67,13 +60,7 @@ function Config(
     return Config(name, dg, Nover, mpicomm, ArrayType)
 end
 
-import ClimateMachine.Ocean: ocean_init_aux!
-
-function ocean_init_aux!(
-    ::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
-    aux,
-    geom,
-)
+function cnse_init_aux!(::CNSE3D, aux, geom)
     @inbounds begin
         aux.x = geom.coord[1]
         aux.y = geom.coord[2]

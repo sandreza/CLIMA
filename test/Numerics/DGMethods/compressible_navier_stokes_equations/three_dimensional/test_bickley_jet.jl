@@ -1,6 +1,6 @@
 #!/usr/bin/env julia --project
 
-include("box.jl")
+include("config_box.jl")
 ClimateMachine.init()
 
 const FT = Float64
@@ -9,15 +9,7 @@ vtkpath = nothing
 #################
 # Initial State #
 #################
-import ClimateMachine.Ocean: ocean_init_state!
-
-function ocean_init_state!(
-    model::ThreeDimensionalCompressibleNavierStokes.CNSE3D,
-    state,
-    aux,
-    localgeo,
-    t,
-)
+function cnse_init_state!(model::CNSE3D, state, aux, localgeo, t)
     ϵ = 0.1 # perturbation magnitude
     l = 0.5 # Gaussian width
     k = 0.5 # Sinusoidal wavenumber

@@ -498,7 +498,7 @@ function numerical_flux_first_order!(
     return nothing
 end
 
-include("../BoundaryConditions.jl")
+include("../FluidBC.jl")
 
 boundary_conditions(model::CNSE2D) = model.boundary_conditions
 
@@ -513,11 +513,11 @@ dispatches to a function in CNSEBoundaryConditions
 end
 
 """
-    CNSE_boundary_state!(nf, bc::CNSEBC, ::CNSE2D)
+    CNSE_boundary_state!(nf, bc::FluidBC, ::CNSE2D)
 
 splits boundary condition application into velocity
 """
-@inline function cnse_boundary_state!(nf, bc::CNSEBC, m::CNSE2D, args...)
+@inline function cnse_boundary_state!(nf, bc::FluidBC, m::CNSE2D, args...)
     return cnse_boundary_state!(nf, bc.momentum, m, m.turbulence, args...)
     return cnse_boundary_state!(nf, bc.temperature, m, args...)
 end

@@ -47,7 +47,7 @@ let
         Nover = 1,
         periodicity = (true, false),
         boundary = ((0, 0), (1, 1)),
-        boundary_conditons = (CNSEBC(Impenetrable(FreeSlip()), Insulating()),),
+        boundary_conditons = (FluidBC(Impenetrable(FreeSlip()), Insulating()),),
     )
 
     tic = Base.time()
