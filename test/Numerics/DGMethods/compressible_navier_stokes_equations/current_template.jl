@@ -61,3 +61,5 @@ simulation = Simulation(
     callbacks = callbacks,
     simulationtime = simulationtime,
 )
+
+evolve!(simulation)
