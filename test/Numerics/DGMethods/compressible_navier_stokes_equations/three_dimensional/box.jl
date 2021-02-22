@@ -12,6 +12,7 @@ function Config(
     boundary = ((0, 0), (0, 0), (0, 0)),
     boundary_conditions = (),
 )
+    FT = Float64
     mpicomm = MPI.COMM_WORLD
     ArrayType = ClimateMachine.array_type()
 
