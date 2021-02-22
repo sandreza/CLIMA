@@ -33,6 +33,7 @@ include("bigfileofstuff.jl")
 include("abstract_simulation.jl")
 
 include("./three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
+# for some reason config needs to be called before anything works
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/run_box.jl")
 # this does not seem like the right idea
 ThreeDimensionalCompressibleNavierStokes.CNSE3D() = ThreeDimensionalCompressibleNavierStokes.CNSE3D(1.0,1.0,1.0,1.0,1.0, 1.0, 1.0, 1.0)

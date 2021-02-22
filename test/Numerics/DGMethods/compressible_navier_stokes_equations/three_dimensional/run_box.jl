@@ -1,6 +1,7 @@
 #!/usr/bin/env julia --project
 
 include("box.jl")
+
 ClimateMachine.init()
 
 const FT = Float64
