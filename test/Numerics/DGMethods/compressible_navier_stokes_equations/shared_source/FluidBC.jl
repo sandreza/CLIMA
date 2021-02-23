@@ -1,7 +1,4 @@
-using StaticArrays
-
-using ClimateMachine.BalanceLaws
-using ClimateMachine.DGMethods.NumericalFluxes
+abstract type BoundaryCondition end
 
 """
     FluidBC(momentum    = Impenetrable(NoSlip())
@@ -9,7 +6,7 @@ using ClimateMachine.DGMethods.NumericalFluxes
 
 The standard boundary condition for CNSEModel. The default options imply a "no flux" boundary condition.
 """
-Base.@kwdef struct FluidBC{M, T}
+Base.@kwdef struct FluidBC{M, T} <: BoundaryCondition
     momentum::M = Impenetrable(NoSlip())
     temperature::T = Insulating()
 end
@@ -88,6 +85,45 @@ struct TemperatureFlux{T} <: TemperatureBC
     function TemperatureFlux(flux::T = nothing) where {T}
         new{T}(flux)
     end
+end
+
+function get_boundary_conditions(model::SpatialModel{BL}) where {BL <: CNSE3D}
+    bcs = model.boundary_conditions
+
+    west_east = (check_bc(bcs, :west), check_bc(bcs, :east))
+    south_north = (check_bc(bcs, :south), check_bc(bcs, :north))
+    bottom_top = (check_bc(bcs, :bottom), check_bc(bcs, :top))
+
+    return (west_east..., south_north..., bottom_top...)
+end
+
+function check_bc(bcs, label)
+    bctype = FluidBC
+
+    bc_ρu = check_bc(bcs, Val(:ρu), label)
+    bc_ρθ = check_bc(bcs, Val(:ρθ), label)
+
+    return bctype(bc_ρu, bc_ρθ)
+end
+
+function check_bc(bcs, ::Val{:ρθ}, label)
+    if haskey(bcs, :ρθ)
+        if haskey(bcs[:ρθ], label)
+            return bcs[:ρθ][label]
+        end
+    end
+
+    return Insulating()
+end
+
+function check_bc(bcs, ::Val{:ρu}, label)
+    if haskey(bcs, :ρu)
+        if haskey(bcs[:ρu], label)
+            return bcs[:ρu][label]
+        end
+    end
+
+    return Impenetrable(FreeSlip())
 end
 
 # these functions just trim off the extra arguments

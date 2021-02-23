@@ -41,7 +41,7 @@ function run_CNSE(
     Q = init_ode_state(dg, FT(0); init_on_cpu = true)
 
     if config.Nover > 0
-        cutoff = CutoffFilter(dg.grid, resolution.N + config.Nover)
+        cutoff = CutoffFilter(dg.grid, resolution.N + 1)
         num_state_prognostic = number_states(dg.balance_law, Prognostic())
         Filters.apply!(Q, 1:num_state_prognostic, dg.grid, cutoff)
     end
@@ -49,7 +49,7 @@ function run_CNSE(
     function custom_tendency(tendency, x...; kw...)
         dg(tendency, x...; kw...)
         if config.Nover > 0
-            cutoff = CutoffFilter(dg.grid, resolution.N + config.Nover)
+            cutoff = CutoffFilter(dg.grid, resolution.N + 1)
             num_state_prognostic = number_states(dg.balance_law, Prognostic())
             Filters.apply!(tendency, 1:num_state_prognostic, dg.grid, cutoff)
         end
