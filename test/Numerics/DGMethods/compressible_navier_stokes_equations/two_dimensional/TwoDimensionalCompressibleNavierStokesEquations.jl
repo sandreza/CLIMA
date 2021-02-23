@@ -1,6 +1,18 @@
 include("../boilerplate.jl")
-include("../abstractions.jl")
-include("../FluidBC.jl")
+
+import ClimateMachine.BalanceLaws:
+    vars_state,
+    init_state_prognostic!,
+    init_state_auxiliary!,
+    compute_gradient_argument!,
+    compute_gradient_flux!,
+    flux_first_order!,
+    flux_second_order!,
+    source!,
+    wavespeed,
+    boundary_conditions,
+    boundary_state!
+import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
 
 """
     TwoDimensionalCompressibleNavierStokesEquations <: BalanceLaw

@@ -35,7 +35,7 @@ function uniform_brick_builder(Ω, elements; FT = Float64)
     for i in 1:dimension
         push!(
             tuple_ranges,
-            range(FT(Ω[i].a); length = elements[i] + 1, stop = FT(Ω[i].b)),
+            range(FT(Ω[i].min); length = elements[i] + 1, stop = FT(Ω[i].max)),
         )
     end
 
@@ -57,8 +57,8 @@ Computes a DiscontinuousSpectralElementGrid as specified by a product domain
 -`topology`: default = StackedBrickTopology
 -`mpicomm`: default = MPI.COMM_WORLD
 -`array`: default = ClimateMachine.array_type()
--`brickbuilder`: default = uniformbrickbuilder, 
-  brickrange=uniformbrickbuilder(Ω, elements)
+-`brickbuilder`: default = uniform_brick_builder, 
+  brickrange=uniform_brick_builder(Ω, elements)
 # Return 
 A DiscontinuousSpectralElementGrid object
 """
@@ -157,7 +157,7 @@ function DiscretizedDomain(
     mpicomm = MPI.COMM_WORLD,
     array = ClimateMachine.array_type(),
     topology = StackedBrickTopology,
-    brickbuilder = uniformbrickbuilder,
+    brick_builder = uniform_brick_builder,
 )
 
     grid = DiscontinuousSpectralElementGrid(
@@ -168,7 +168,7 @@ function DiscretizedDomain(
         mpicomm = mpicomm,
         array = array,
         topology = topology,
-        brickbuilder = brickbuilder,
+        brick_builder = brick_builder,
     )
     return DiscretizedDomain(Ω, (; elements, polynomialorder), grid)
 end

@@ -87,16 +87,6 @@ struct TemperatureFlux{T} <: TemperatureBC
     end
 end
 
-function get_boundary_conditions(model::SpatialModel{BL}) where {BL <: CNSE3D}
-    bcs = model.boundary_conditions
-
-    west_east = (check_bc(bcs, :west), check_bc(bcs, :east))
-    south_north = (check_bc(bcs, :south), check_bc(bcs, :north))
-    bottom_top = (check_bc(bcs, :bottom), check_bc(bcs, :top))
-
-    return (west_east..., south_north..., bottom_top...)
-end
-
 function check_bc(bcs, label)
     bctype = FluidBC
 

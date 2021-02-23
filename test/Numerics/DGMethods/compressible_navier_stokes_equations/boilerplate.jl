@@ -1,6 +1,9 @@
 using MPI
+using JLD2
 using Test
+using Dates
 using Printf
+using Logging
 using StaticArrays
 using LinearAlgebra
 
@@ -8,25 +11,13 @@ using ClimateMachine.MPIStateArrays
 using ClimateMachine.VariableTemplates
 using ClimateMachine.Mesh.Geometry
 using ClimateMachine.Mesh.Topologies
+using ClimateMachine.Mesh.Grids
 using ClimateMachine.DGMethods
 using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.BalanceLaws
+using ClimateMachine.ODESolvers
 
-import ClimateMachine.BalanceLaws:
-    vars_state,
-    init_state_prognostic!,
-    init_state_auxiliary!,
-    compute_gradient_argument!,
-    compute_gradient_flux!,
-    flux_first_order!,
-    flux_second_order!,
-    source!,
-    wavespeed,
-    boundary_conditions,
-    boundary_state!
-import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
-
-×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
+# ×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
 ⋅(a::SVector, b::SVector) = StaticArrays.dot(a, b)
 ⊗(a::SVector, b::SVector) = a * b'
 
@@ -37,6 +28,8 @@ include("shared_source/abstractions.jl")
 include("shared_source/callbacks.jl")
 
 function evolve!(simulation)
+    Q = simulation.state
+
     # actually apply initial conditions
     for s in keys(simulation.initial_conditions)
         x, y, z = coordinates(simulation)

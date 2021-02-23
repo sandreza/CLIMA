@@ -1,6 +1,18 @@
 include("../boilerplate.jl")
-include("../abstractions.jl")
-include("../FluidBC.jl")
+
+import ClimateMachine.BalanceLaws:
+    vars_state,
+    init_state_prognostic!,
+    init_state_auxiliary!,
+    compute_gradient_argument!,
+    compute_gradient_flux!,
+    flux_first_order!,
+    flux_second_order!,
+    source!,
+    wavespeed,
+    boundary_conditions,
+    boundary_state!
+import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
 
 """
     ThreeDimensionalCompressibleNavierStokesEquations <: BalanceLaw
@@ -9,6 +21,9 @@ write out the equations here
 # Usage
     ThreeDimensionalCompressibleNavierStokesEquations()
 """
+abstract type AbstractFluid3D <: BalanceLaw end
+struct Fluid3D end
+
 struct ThreeDimensionalCompressibleNavierStokesEquations{
     D,
     A,
@@ -17,7 +32,7 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
     F,
     BC,
     FT,
-} <: BalanceLaw
+} <: AbstractFluid3D
     domain::D
     advection::A
     turbulence::T
@@ -423,3 +438,50 @@ end
 
 include("bc_momentum.jl")
 include("bc_temperature.jl")
+
+"""
+STUFF FOR ANDRE'S WRAPPERS
+"""
+
+function get_boundary_conditions(
+    model::SpatialModel{BL},
+) where {BL <: AbstractFluid3D}
+    bcs = model.boundary_conditions
+
+    west_east = (check_bc(bcs, :west), check_bc(bcs, :east))
+    south_north = (check_bc(bcs, :south), check_bc(bcs, :north))
+    bottom_top = (check_bc(bcs, :bottom), check_bc(bcs, :top))
+
+    return (west_east..., south_north..., bottom_top...)
+end
+
+function DGModel(model::SpatialModel{BL}) where {BL <: AbstractFluid3D}
+    params = model.parameters
+    physics = model.physics
+
+    Lˣ, Lʸ, Lᶻ = length(model.grid.domain)
+    boundary_conditions = get_boundary_conditions(model)
+
+    balance_law = CNSE3D(
+        (Lˣ, Lʸ, Lᶻ),
+        physics.advection,
+        physics.dissipation,
+        physics.coriolis,
+        physics.buoyancy,
+        boundary_conditions,
+        ρₒ = params.ρₒ,
+        cₛ = params.cₛ,
+    )
+
+    numerical_flux_first_order = model.numerics.flux # should be a function
+
+    dg = DGModel(
+        balance_law,
+        model.grid.numerical,
+        numerical_flux_first_order,
+        CentralNumericalFluxSecondOrder(),
+        CentralNumericalFluxGradient(),
+    )
+
+    return dg
+end

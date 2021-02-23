@@ -1,4 +1,7 @@
 include("boilerplate.jl")
+include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
+
+ClimateMachine.init()
 
 ########
 # Setup physical and numerical domains
@@ -9,17 +12,6 @@ grid = DiscretizedDomain(
     elements = (vertical = 2, horizontal = 2),
     polynomialorder = (vertical = 1, horizontal = 1),
 )
-
-########
-# Define boundary conditions and numerical fluxes
-########
-ρu_bcs = (bottom = Impenetrable(NoSlip()), top = Impenetrable(FreeSlip()))
-ρθ_bcs = (bottom = Insulating(), top = TemperatureFlux((state, aux, t) -> 1e-6))
-boundary_conditions = (ρθ = ρθ_bcs, ρu = ρu_bcs)
-
-flux = RoeNumericalFlux()
-
-numerics = (; flux)
 
 ########
 # Define physical parameters and parameterizations
@@ -33,8 +25,8 @@ parameters = (
     cᶻ = 1.0, # linearized sound speed in vertical 
 )
 
-buoyancy = Buoyancy{FT}(α = 0.0, g = 0.0)
-dissipation = ConstantVelocity{FT}(μ = 0, ν = 1e-6, κ = 1e-12)
+buoyancy = Buoyancy{FT}(α = 2e-4, g = 10)
+dissipation = ConstantViscosity{FT}(μ = 0, ν = 1e-6, κ = 1e-12)
 
 physics = FluidPhysics(;
     advection = NonLinearAdvectionTerm(),
@@ -42,6 +34,17 @@ physics = FluidPhysics(;
     coriolis = nothing,
     buoyancy = nothing,
 )
+
+########
+# Define boundary conditions and numerical fluxes
+########
+ρu_bcs = (bottom = Impenetrable(NoSlip()), top = Impenetrable(FreeSlip()))
+ρθ_bcs = (bottom = Insulating(), top = TemperatureFlux((state, aux, t) -> 1e-6))
+BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
+
+flux = RoeNumericalFlux()
+
+numerics = (; flux)
 
 ########
 # Define initial conditions
@@ -74,13 +77,15 @@ callbacks = (Info())
 # Create the things
 ########
 model = SpatialModel(
-    balance_law = CNSE3D,
+    balance_law = Fluid3D(),
     physics = physics,
     numerics = numerics,
     grid = grid,
-    boundary_conditions = boundary_conditions,
+    boundary_conditions = BC,
     parameters = parameters,
 )
+
+@show typeof(model.balance_law)
 
 timestepper = TimeStepper(method = method, timestep = Δt)
 

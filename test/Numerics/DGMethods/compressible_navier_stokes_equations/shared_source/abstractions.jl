@@ -93,7 +93,7 @@ end
 
 abstract type AbstractSimulation end
 
-Base.@kwdef struct Simulation{𝒜, ℬ, 𝒞, 𝒟, ℰ} <: AbstractSimulation
+Base.@kwdef struct Simulation{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractSimulation
     model::𝒜
     state::ℬ
     timestepper::𝒞
@@ -122,37 +122,6 @@ function Simulation(;
         callbacks,
         simulation_time,
     )
-end
-
-function DGModel(model::SpatialModel{BL}) where {BL <: CNSE3D}
-    params = model.parameters
-    physics = model.physics
-
-    Lˣ, Lʸ, Lᶻ = length(model.grid.domain)
-    boundary_conditions = get_boundary_conditions(model)
-
-    model = model.balance_law(
-        (Lˣ, Lʸ, Lᶻ),
-        physics.advection,
-        physics.dissipation,
-        physics.coriolis,
-        physics.buoyancy,
-        boundary_conditions,
-        ρₒ = params.ρₒ,
-        cₛ = params.cₛ,
-    )
-
-    numerical_flux_first_order = model.numerics.flux # should be a function
-
-    dg = DGModel(
-        model,
-        model.grid.numerical,
-        numerical_flux_first_order,
-        CentralNumericalFluxSecondOrder(),
-        CentralNumericalFluxGradient(),
-    )
-
-    return dg
 end
 
 coordinates(s::Simulation) = coordinates(simulation.model.grid.numerical)
