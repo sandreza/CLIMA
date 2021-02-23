@@ -63,7 +63,7 @@ function simulation_to_dgmodel(simulation::Simulation, balancelaw::ThreeDimensio
 end
 
 function get_dissipation(physics::NamedTuple, ::ThreeDimensionalCompressibleNavierStokes.CNSE3D)
-    ν = κ = μ = 0
+    ν = κ = μ = 0.0
     if haskey(physics, :dissipation)
         if haskey(physics.dissipation, :ρθ)
             κ = physics.dissipation.ρθ.model

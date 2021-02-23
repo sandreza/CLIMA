@@ -32,11 +32,12 @@ include("abstract_timesteppers.jl")
 include("bigfileofstuff.jl")
 include("abstract_simulation.jl")
 
+##
 include("./three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
 # for some reason config needs to be called before anything works
 # include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/run_box.jl")
 include(pwd() * "/test/Numerics/DGMethods/compressible_navier_stokes_equations/three_dimensional/box.jl")
-Config("", (Nˣ = 1, Nʸ=1, Nᶻ = 1, N = 1), (Lˣ = 1, Lʸ = 1, Lᶻ = 1), (cₛ=1, cᶻ=1, ρₒ=1, μ=0, ν=0, κ=0, α=0, g=0))
+Config("", (Nˣ = 1, Nʸ=1, Nᶻ = 1, N = 1), (Lˣ = 1.0, Lʸ = 1.0, Lᶻ = 1.0), (cₛ=1.0, cᶻ=1.0, ρₒ=1.0, μ=0.0, ν=0.0, κ=0.0, α=0.0, g=0.0))
 # this does not seem like the right idea
 ThreeDimensionalCompressibleNavierStokes.CNSE3D() = ThreeDimensionalCompressibleNavierStokes.CNSE3D(1.0,1.0,1.0,1.0,1.0, 1.0, 1.0, 1.0)
 ThreeDimensionalCompressibleNavierStokesEquations = ThreeDimensionalCompressibleNavierStokes.CNSE3D
