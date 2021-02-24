@@ -7,7 +7,6 @@ using Logging
 using StaticArrays
 using LinearAlgebra
 
-
 using ClimateMachine
 using ClimateMachine.MPIStateArrays
 using ClimateMachine.VariableTemplates
@@ -15,7 +14,6 @@ using ClimateMachine.Mesh.Geometry
 using ClimateMachine.Mesh.Topologies
 using ClimateMachine.Mesh.Grids
 using ClimateMachine.DGMethods
-import ClimateMachine.DGMethods: DGModel
 using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.BalanceLaws
 using ClimateMachine.ODESolvers
@@ -23,6 +21,9 @@ using ClimateMachine.ODESolvers
 # ×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
 ⋅(a::SVector, b::SVector) = StaticArrays.dot(a, b)
 ⊗(a::SVector, b::SVector) = a * b'
+
+abstract type AbstractFluid <: BalanceLaw end
+struct Fluid <: AbstractFluid end
 
 include("shared_source/domains.jl")
 include("shared_source/grids.jl")

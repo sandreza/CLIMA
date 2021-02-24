@@ -55,8 +55,8 @@ numerics = (; flux)
 ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
 ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (0.01 * z)
 
-momentum₀(x, y, z, p) = @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
-initial_conditions = (ρ = ρ₀, ρu = momentum₀, ρθ = ρθ₀)
+ρu⃗₀(x, y, z, p) = @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
+initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 
 ########
 # Define timestepping parameters
@@ -71,7 +71,7 @@ method = SSPRK22Heuns
 # Define callbacks
 ########
 
-callbacks = (Info(), )
+callbacks = (Info(),)
 
 ########
 # Create the things

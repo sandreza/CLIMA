@@ -12,6 +12,7 @@ import ClimateMachine.BalanceLaws:
     wavespeed,
     boundary_conditions,
     boundary_state!
+import ClimateMachine.DGMethods: DGModel
 import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
 
 """
@@ -26,8 +27,10 @@ write out the equations here
     TwoDimensionalCompressibleNavierStokesEquations()
 
 """
+abstract type AbstractFluid2D <: AbstractFluid end
+struct Fluid2D <: AbstractFluid2D end
 struct TwoDimensionalCompressibleNavierStokesEquations{D, A, T, C, F, BC, FT} <:
-       BalanceLaw
+       AbstractFluid2D
     domain::D
     advection::A
     turbulence::T
@@ -72,6 +75,19 @@ function init_state_prognostic!(m::CNSE2D, state::Vars, aux::Vars, localgeo, t)
     cnse_init_state!(m, state, aux, localgeo, t)
 end
 
+function cnse_init_state!(model::CNSE2D, state, aux, localgeo, t)
+
+    x = aux.x
+    y = aux.y
+
+    ρ = 1
+    state.ρ = ρ
+    state.ρu = ρ * @SVector [-0, -0]
+    state.ρθ = ρ
+
+    return nothing
+end
+
 function vars_state(m::CNSE2D, ::Auxiliary, T)
     @vars begin
         x::T
@@ -92,6 +108,15 @@ function init_state_auxiliary!(
         grid,
         direction,
     )
+end
+
+function cnse_init_aux!(::CNSE2D, aux, geom)
+    @inbounds begin
+        aux.x = geom.coord[1]
+        aux.y = geom.coord[2]
+    end
+
+    return nothing
 end
 
 function vars_state(m::CNSE2D, ::Gradient, T)
@@ -470,3 +495,49 @@ end
 
 include("bc_momentum.jl")
 include("bc_tracer.jl")
+
+"""
+STUFF FOR ANDRE'S WRAPPERS
+"""
+
+function get_boundary_conditions(
+    model::SpatialModel{BL},
+) where {BL <: AbstractFluid2D}
+    bcs = model.boundary_conditions
+
+    west_east = (check_bc(bcs, :west), check_bc(bcs, :east))
+    south_north = (check_bc(bcs, :south), check_bc(bcs, :north))
+
+    return (west_east..., south_north...)
+end
+
+function DGModel(model::SpatialModel{BL}) where {BL <: AbstractFluid2D}
+    params = model.parameters
+    physics = model.physics
+
+    Lˣ, Lʸ = length(model.grid.domain)
+    bcs = get_boundary_conditions(model)
+    FT = eltype(model.grid.numerical.vgeo)
+    balance_law = CNSE2D{FT}(
+        (Lˣ, Lʸ),
+        physics.advection,
+        physics.dissipation,
+        physics.coriolis,
+        nothing,
+        bcs,
+        c = params.c,
+        g = params.g,
+    )
+
+    numerical_flux_first_order = model.numerics.flux # should be a function
+
+    rhs = DGModel(
+        balance_law,
+        model.grid.numerical,
+        numerical_flux_first_order,
+        CentralNumericalFluxSecondOrder(),
+        CentralNumericalFluxGradient(),
+    )
+
+    return rhs
+end

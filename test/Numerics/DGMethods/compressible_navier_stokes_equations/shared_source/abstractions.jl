@@ -82,7 +82,10 @@ Base.@kwdef struct SpatialModel{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractMode
     parameters::ℱ
 end
 
-polynomialorders(s::SpatialModel) = convention(model.grid.resolution.polynomialorder, Val(ndims(model.grid.domain))) 
+polynomialorders(s::SpatialModel) = convention(
+    model.grid.resolution.polynomialorder,
+    Val(ndims(model.grid.domain)),
+)
 
 abstract type ModelPhysics end
 
@@ -116,7 +119,7 @@ function Simulation(;
 
     FT = eltype(model.grid.vgeo)
 
-    if state==nothing
+    if state == nothing
         state = init_ode_state(model, FT(0); init_on_cpu = true)
     end
     # model = (discrete = dgmodel, spatial = model)

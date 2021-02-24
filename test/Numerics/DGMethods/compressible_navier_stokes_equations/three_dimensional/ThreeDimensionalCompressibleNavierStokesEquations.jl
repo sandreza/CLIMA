@@ -12,6 +12,7 @@ import ClimateMachine.BalanceLaws:
     wavespeed,
     boundary_conditions,
     boundary_state!
+import ClimateMachine.DGMethods: DGModel
 import ClimateMachine.NumericalFluxes: numerical_flux_first_order!
 
 """
@@ -21,7 +22,7 @@ write out the equations here
 # Usage
     ThreeDimensionalCompressibleNavierStokesEquations()
 """
-abstract type AbstractFluid3D <: BalanceLaw end
+abstract type AbstractFluid3D <: AbstractFluid end
 struct Fluid3D <: AbstractFluid3D end
 
 struct ThreeDimensionalCompressibleNavierStokesEquations{
@@ -78,6 +79,20 @@ function init_state_prognostic!(m::CNSE3D, state::Vars, aux::Vars, localgeo, t)
     cnse_init_state!(m, state, aux, localgeo, t)
 end
 
+function cnse_init_state!(model::CNSE3D, state, aux, localgeo, t)
+
+    x = aux.x
+    y = aux.y
+    z = aux.z
+
+    ρ = model.ρₒ
+    state.ρ = ρ
+    state.ρu = ρ * @SVector [-0, -0, -0]
+    state.ρθ = ρ
+
+    return nothing
+end
+
 function vars_state(m::CNSE3D, ::Auxiliary, T)
     @vars begin
         x::T
@@ -100,6 +115,8 @@ function init_state_auxiliary!(
         direction,
     )
 end
+
+
 
 function vars_state(m::CNSE3D, ::Gradient, T)
     @vars begin
@@ -436,31 +453,6 @@ splits boundary condition application into velocity
     return nothing
 end
 
-function cnse_init_aux!(::CNSE3D, aux, geom)
-    @inbounds begin
-        aux.x = geom.coord[1]
-        aux.y = geom.coord[2]
-        aux.z = geom.coord[3]
-    end
-
-    return nothing
-end
-
-function cnse_init_state!(model::CNSE3D, state, aux, localgeo, t)
-
-    x = aux.x
-    y = aux.y
-    z = aux.z
-
-    ρ = model.ρₒ
-    state.ρ = ρ
-    state.ρu = ρ * @SVector [-0, -0, -0]
-    state.ρθ = ρ 
-
-    return nothing
-end
-
-
 include("bc_momentum.jl")
 include("bc_temperature.jl")
 
@@ -473,9 +465,9 @@ function get_boundary_conditions(
 ) where {BL <: AbstractFluid3D}
     bcs = model.boundary_conditions
 
-    west_east   = (check_bc(bcs, :west), check_bc(bcs, :east))
+    west_east = (check_bc(bcs, :west), check_bc(bcs, :east))
     south_north = (check_bc(bcs, :south), check_bc(bcs, :north))
-    bottom_top  = (check_bc(bcs, :bottom), check_bc(bcs, :top))
+    bottom_top = (check_bc(bcs, :bottom), check_bc(bcs, :top))
 
     return (west_east..., south_north..., bottom_top...)
 end
