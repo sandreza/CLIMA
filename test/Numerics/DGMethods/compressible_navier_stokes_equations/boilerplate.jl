@@ -7,12 +7,15 @@ using Logging
 using StaticArrays
 using LinearAlgebra
 
+
+using ClimateMachine
 using ClimateMachine.MPIStateArrays
 using ClimateMachine.VariableTemplates
 using ClimateMachine.Mesh.Geometry
 using ClimateMachine.Mesh.Topologies
 using ClimateMachine.Mesh.Grids
 using ClimateMachine.DGMethods
+import ClimateMachine.DGMethods: DGModel
 using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.BalanceLaws
 using ClimateMachine.ODESolvers
@@ -27,25 +30,42 @@ include("shared_source/FluidBC.jl")
 include("shared_source/abstractions.jl")
 include("shared_source/callbacks.jl")
 
-function evolve!(simulation)
+"""
+function coordinates(grid::DiscontinuousSpectralElementGrid)
+# Description
+Gets the (x,y,z) coordinates corresponding to the grid
+# Arguments
+- `grid`: DiscontinuousSpectralElementGrid
+# Return
+- `x, y, z`: views of x, y, z coordinates
+"""
+function coordinates(grid::DiscontinuousSpectralElementGrid)
+    x = view(grid.vgeo, :, grid.x1id, :)   # x-direction	
+    y = view(grid.vgeo, :, grid.x2id, :)   # y-direction	
+    z = view(grid.vgeo, :, grid.x3id, :)   # z-direction
+    return x, y, z
+end
+
+function evolve!(simulation, spatialmodel)
     Q = simulation.state
 
     # actually apply initial conditions
     for s in keys(simulation.initial_conditions)
         x, y, z = coordinates(simulation)
-        p = simulation.model.parameters
-        ic = simulation.initialconditions[s]
+        p = spatialmodel.parameters
+        ic = simulation.initial_conditions[s]
         ϕ = getproperty(Q, s)
         set_ic!(ϕ, ic, x, y, z, p)
     end
 
-    Ns = polynomialorders(simulation)
+    Ns = polynomialorders(spatialmodel)
 
-    if haskey(simulation.model.numerics, :overintegration)
-        Nover = simulation.model.numerics.overintegration
+    if haskey(spatialmodel.numerics, :overintegration)
+        Nover = spatialmodel.numerics.overintegration
     else
         Nover = (0, 0, 0)
     end
+    dg = simulation.model
 
     if sum(Nover) > 0
         cutoff = CutoffFilter(dg.grid, Ns .- (Nover .- 1))
@@ -69,18 +89,18 @@ function evolve!(simulation)
         custom_tendency,
         Q,
         dt = Δt,
-        t0 = simulation.simulationtime[1],
+        t0 = simulation.simulation_time[1],
     )
 
-    cbvector = create_callbacks(simulation)
+    cbvector = [nothing] # create_callbacks(simulation)
 
     if cbvector == [nothing]
-        solve!(Q, odesolver; timeend = simulation.simulationtime[2])
+        solve!(Q, odesolver; timeend = simulation.simulation_time[2])
     else
         solve!(
             Q,
             odesolver;
-            timeend = simulation.simulationtime[2],
+            timeend = simulation.simulation_time[2],
             callbacks = cbvector,
         )
     end

@@ -39,3 +39,6 @@ src/**/Manifest.toml
 
 # Julia System Images
 *.so
+
+# Julia Files
+*debug_zone*

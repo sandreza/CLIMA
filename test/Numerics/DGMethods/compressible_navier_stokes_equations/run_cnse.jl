@@ -19,7 +19,7 @@ grid = DiscretizedDomain(
 FT = eltype(grid.numerical.vgeo)
 
 parameters = (
-    ϵ = 0.1, # perturbation size for initial condition
+    ϵ = 0.1,  # perturbation size for initial condition
     ρₒ = 1.0, # reference density
     cₛ = 1.0, # linearized sound speed in horizontal
     cᶻ = 1.0, # linearized sound speed in vertical 
@@ -50,19 +50,19 @@ numerics = (; flux)
 # Define initial conditions
 ########
 ρ₀(x, y, z, p) = p.ρₒ
-ρu₀(x, y, z, p) = ρ(x, y, z, p) * sin(x) * sin(y)
-ρv₀(x, y, z, p) = ρ(x, y, z, p) * p.ϵ * sin(x) * sin(y)
-ρw₀(x, y, z, p) = ρ(x, y, z, p) * 0.0
-ρθ₀(x, y, z, p) = ρ(x, y, z, p) * (0.01 * z)
+ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * sin(x) * sin(y)
+ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(x) * sin(y)
+ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
+ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (0.01 * z)
 
-ρu₀(x, y, z, p) = @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
-initial_conditions = (ρ = ρ₀, ρu = ρu₀, ρθ = ρθ₀)
+momentum₀(x, y, z, p) = @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
+initial_conditions = (ρ = ρ₀, ρu = momentum₀, ρθ = ρθ₀)
 
 ########
 # Define timestepping parameters
 ########
 start_time = 0
-end_time = 0
+end_time = 1.0
 method = SSPRK22Heuns
 
 Δt = calculate_dt(grid, wavespeed = parameters.cₛ, cfl = 0.1)
@@ -71,7 +71,7 @@ method = SSPRK22Heuns
 # Define callbacks
 ########
 
-callbacks = (Info())
+callbacks = (Info(), )
 
 ########
 # Create the things
@@ -84,8 +84,6 @@ model = SpatialModel(
     boundary_conditions = BC,
     parameters = parameters,
 )
-
-@show typeof(model.balance_law)
 
 timestepper = TimeStepper(method = method, timestep = Δt)
 
@@ -101,4 +99,4 @@ simulation = Simulation(
 # Run the model
 ########
 
-evolve!(simulation)
+evolve!(simulation, model)

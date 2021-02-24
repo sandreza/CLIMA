@@ -309,10 +309,10 @@ let
     numlevels = integration_testing ? 4 : 1
 
     @testset "$(@__FILE__)" begin
-        for FT in (Float64, Float32)
-            result = zeros(FT, numlevels)
-            for dim in 2:3
-                for fluxBC in (true, false)
+        for FT in [Float64]
+            result = zeros(FT, 1)
+            for dim in [2]
+                for fluxBC in [true]
                     d = dim == 2 ? FT[1, 10, 0] : FT[1, 1, 10]
                     n = SVector{3, FT}(d ./ norm(d))
 
