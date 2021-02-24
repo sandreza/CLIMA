@@ -82,6 +82,8 @@ Base.@kwdef struct SpatialModel{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractMode
     parameters::ℱ
 end
 
+polynomialorders(s::SpatialModel) = convention(model.grid.resolution.polynomialorder, Val(ndims(model.grid.domain))) 
+
 abstract type ModelPhysics end
 
 Base.@kwdef struct FluidPhysics{A, D, C, B} <: ModelPhysics
@@ -93,7 +95,7 @@ end
 
 abstract type AbstractSimulation end
 
-Base.@kwdef struct Simulation{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractSimulation
+struct Simulation{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractSimulation
     model::𝒜
     state::ℬ
     timestepper::𝒞
@@ -104,6 +106,7 @@ end
 
 function Simulation(;
     model = nothing,
+    state = nothing,
     timestepper = nothing,
     initial_conditions = nothing,
     callbacks = nothing,
@@ -111,10 +114,13 @@ function Simulation(;
 )
     model = DGModel(model)
 
-    FT = eltype(simulation.model.grid.numerical.vgeo)
-    state = init_ode_state(dg, FT(0); init_on_cpu = true)
+    FT = eltype(model.grid.vgeo)
 
-    return Simulation(;
+    if state==nothing
+        state = init_ode_state(model, FT(0); init_on_cpu = true)
+    end
+    # model = (discrete = dgmodel, spatial = model)
+    return Simulation(
         model,
         state,
         timestepper,
@@ -124,11 +130,8 @@ function Simulation(;
     )
 end
 
-coordinates(s::Simulation) = coordinates(simulation.model.grid.numerical)
-polynomialorders(s::Simulation) = convention(
-    simulation.model.grid.resolution.polynomialorder,
-    Val(ndims(simulation.model.grid.domain)),
-)
+coordinates(s::Simulation) = coordinates(simulation.model.grid)
+polynomialorders(s::Simulation) = polynomialorders(simulation.model.grid)
 
 abstract type AbstractTimestepper end
 

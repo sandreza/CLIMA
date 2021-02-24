@@ -22,7 +22,7 @@ write out the equations here
     ThreeDimensionalCompressibleNavierStokesEquations()
 """
 abstract type AbstractFluid3D <: BalanceLaw end
-struct Fluid3D end
+struct Fluid3D <: AbstractFluid3D end
 
 struct ThreeDimensionalCompressibleNavierStokesEquations{
     D,
@@ -48,7 +48,7 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
         coriolis::C,
         forcing::F,
         boundary_conditions::BC;
-        cₛ = FT(sqrt(10)),  #m/s
+        cₛ = FT(sqrt(10)),  # m/s
         ρₒ = FT(1),  #kg/m³
     ) where {FT <: AbstractFloat, D, A, T, C, F, BC}
         return new{D, A, T, C, F, BC, FT}(
@@ -436,6 +436,31 @@ splits boundary condition application into velocity
     return nothing
 end
 
+function cnse_init_aux!(::CNSE3D, aux, geom)
+    @inbounds begin
+        aux.x = geom.coord[1]
+        aux.y = geom.coord[2]
+        aux.z = geom.coord[3]
+    end
+
+    return nothing
+end
+
+function cnse_init_state!(model::CNSE3D, state, aux, localgeo, t)
+
+    x = aux.x
+    y = aux.y
+    z = aux.z
+
+    ρ = model.ρₒ
+    state.ρ = ρ
+    state.ρu = ρ * @SVector [-0, -0, -0]
+    state.ρθ = ρ 
+
+    return nothing
+end
+
+
 include("bc_momentum.jl")
 include("bc_temperature.jl")
 
@@ -448,9 +473,9 @@ function get_boundary_conditions(
 ) where {BL <: AbstractFluid3D}
     bcs = model.boundary_conditions
 
-    west_east = (check_bc(bcs, :west), check_bc(bcs, :east))
+    west_east   = (check_bc(bcs, :west), check_bc(bcs, :east))
     south_north = (check_bc(bcs, :south), check_bc(bcs, :north))
-    bottom_top = (check_bc(bcs, :bottom), check_bc(bcs, :top))
+    bottom_top  = (check_bc(bcs, :bottom), check_bc(bcs, :top))
 
     return (west_east..., south_north..., bottom_top...)
 end
@@ -460,22 +485,22 @@ function DGModel(model::SpatialModel{BL}) where {BL <: AbstractFluid3D}
     physics = model.physics
 
     Lˣ, Lʸ, Lᶻ = length(model.grid.domain)
-    boundary_conditions = get_boundary_conditions(model)
-
-    balance_law = CNSE3D(
+    bcs = get_boundary_conditions(model)
+    FT = eltype(model.grid.numerical.vgeo)
+    balance_law = CNSE3D{FT}(
         (Lˣ, Lʸ, Lᶻ),
         physics.advection,
         physics.dissipation,
         physics.coriolis,
         physics.buoyancy,
-        boundary_conditions,
+        bcs,
         ρₒ = params.ρₒ,
         cₛ = params.cₛ,
     )
 
     numerical_flux_first_order = model.numerics.flux # should be a function
 
-    dg = DGModel(
+    rhs = DGModel(
         balance_law,
         model.grid.numerical,
         numerical_flux_first_order,
@@ -483,5 +508,5 @@ function DGModel(model::SpatialModel{BL}) where {BL <: AbstractFluid3D}
         CentralNumericalFluxGradient(),
     )
 
-    return dg
+    return rhs
 end
