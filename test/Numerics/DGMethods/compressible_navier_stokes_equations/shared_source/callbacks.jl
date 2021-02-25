@@ -2,18 +2,36 @@ abstract type AbstractCallback end
 
 struct Default <: AbstractCallback end
 struct Info <: AbstractCallback end
+struct StateCheck{T} <: AbstractCallback
+    number_of_checks::T
+end
 
-function create_callbacks(simulation::Simulation)
+function create_callbacks(simulation::Simulation, odesolver)
     callbacks = simulation.callbacks
-    cbvector = [create_callback(simulation, callback) for callback in callbacks]
-    return cbvector
+
+    if isempty(callbacks)
+        return ()
+    else
+        cbvector = [
+            create_callback(callback, simulation, odesolver)
+            for callback in callbacks
+        ]
+        return tuple(cbvector...)
+    end
 end
 
-function create_callback(simulation::Simulation, callback::Default)
-    return nothing
+function create_callback(::Default, simulation::Simulation, odesolver)
+    cb_info = create_callback(Info(), simulation, odesolver)
+    cb_state_check = create_callback(StateCheck(10), simulation, odesolver)
+
+    return (cb_info, cb_state_check)
 end
 
-function create_callback(simulation::Simulation, callback::Info)
+function create_callback(::Info, simulation::Simulation, odesolver)
+    Q = simulation.state
+    timeend = simulation.time.finish
+    mpicomm = MPI.COMM_WORLD
+
     starttime = Ref(now())
     cbinfo = ClimateMachine.GenericCallbacks.EveryXWallTimeSeconds(
         60,
@@ -28,8 +46,8 @@ function create_callback(simulation::Simulation, callback::Info)
                 simtime = %8.2f / %8.2f
                 runtime = %s
                 norm(Q) = %.16e""",
-                ODESolvers.gettime(odesolver),
-                timespan.timeend,
+                ClimateMachine.ODESolvers.gettime(odesolver),
+                timeend,
                 Dates.format(
                     convert(Dates.DateTime, Dates.now() - starttime[]),
                     Dates.dateformat"HH:MM:SS",
@@ -44,4 +62,20 @@ function create_callback(simulation::Simulation, callback::Info)
     end
 
     return cbinfo
+end
+
+function create_callback(callback::StateCheck, simulation::Simulation, _...)
+    sim_length = simulation.time.finish - simulation.time.start
+    timestep = simulation.timestepper.timestep
+    nChecks = callback.number_of_checks
+
+
+    nt_freq = floor(Int, sim_length / timestep / nChecks)
+
+    cbcs_dg = ClimateMachine.StateCheck.sccreate(
+        [(simulation.state, "state")],
+        nt_freq,
+    )
+
+    return cbcs_dg
 end

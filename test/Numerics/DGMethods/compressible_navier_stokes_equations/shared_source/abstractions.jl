@@ -82,7 +82,7 @@ Base.@kwdef struct SpatialModel{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractMode
     parameters::ℱ
 end
 
-polynomialorders(s::SpatialModel) = convention(
+polynomialorders(model::SpatialModel) = convention(
     model.grid.resolution.polynomialorder,
     Val(ndims(model.grid.domain)),
 )
@@ -104,7 +104,7 @@ struct Simulation{𝒜, ℬ, 𝒞, 𝒟, ℰ, ℱ} <: AbstractSimulation
     timestepper::𝒞
     initial_conditions::𝒟
     callbacks::ℰ
-    simulation_time::ℱ
+    time::ℱ
 end
 
 function Simulation(;
@@ -113,7 +113,7 @@ function Simulation(;
     timestepper = nothing,
     initial_conditions = nothing,
     callbacks = nothing,
-    simulation_time = nothing,
+    time = nothing,
 )
     model = DGModel(model)
 
@@ -129,12 +129,13 @@ function Simulation(;
         timestepper,
         initial_conditions,
         callbacks,
-        simulation_time,
+        time,
     )
 end
 
-coordinates(s::Simulation) = coordinates(simulation.model.grid)
-polynomialorders(s::Simulation) = polynomialorders(simulation.model.grid)
+coordinates(simulation::Simulation) = coordinates(simulation.model.grid)
+polynomialorders(simulation::Simulation) =
+    polynomialorders(simulation.model.grid)
 
 abstract type AbstractTimestepper end
 

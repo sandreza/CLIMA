@@ -1,5 +1,12 @@
 import ClimateMachine.Mesh.Grids: DiscontinuousSpectralElementGrid
 
+function coordinates(grid::DiscontinuousSpectralElementGrid)
+    x = view(grid.vgeo, :, grid.x1id, :)   # x-direction	
+    y = view(grid.vgeo, :, grid.x2id, :)   # y-direction	
+    z = view(grid.vgeo, :, grid.x3id, :)   # z-direction
+    return x, y, z
+end
+
 # some convenience functions
 function convention(
     a::NamedTuple{(:vertical, :horizontal), T},

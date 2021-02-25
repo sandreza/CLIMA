@@ -40,14 +40,8 @@ Gets the (x,y,z) coordinates corresponding to the grid
 # Return
 - `x, y, z`: views of x, y, z coordinates
 """
-function coordinates(grid::DiscontinuousSpectralElementGrid)
-    x = view(grid.vgeo, :, grid.x1id, :)   # x-direction	
-    y = view(grid.vgeo, :, grid.x2id, :)   # y-direction	
-    z = view(grid.vgeo, :, grid.x3id, :)   # z-direction
-    return x, y, z
-end
 
-function evolve!(simulation, spatialmodel)
+function evolve!(simulation, spatialmodel; refDat = ())
     Q = simulation.state
 
     # actually apply initial conditions
@@ -86,26 +80,52 @@ function evolve!(simulation, spatialmodel)
     Δt = simulation.timestepper.timestep
     timestepper = simulation.timestepper.method
 
-    odesolver = timestepper(
-        custom_tendency,
-        Q,
-        dt = Δt,
-        t0 = simulation.simulation_time[1],
-    )
+    odesolver =
+        timestepper(custom_tendency, Q, dt = Δt, t0 = simulation.time.start)
 
-    cbvector = [nothing] # create_callbacks(simulation)
+    cbvector = create_callbacks(simulation, odesolver)
 
-    if cbvector == [nothing]
-        solve!(Q, odesolver; timeend = simulation.simulation_time[2])
+    if isempty(cbvector)
+        solve!(Q, odesolver; timeend = simulation.time.finish)
     else
         solve!(
             Q,
             odesolver;
-            timeend = simulation.simulation_time[2],
+            timeend = simulation.time.finish,
             callbacks = cbvector,
         )
     end
+
+    ## Check results against reference
+
+    ClimateMachine.StateCheck.scprintref(cbvector[end])
+    if length(refDat) > 0
+        @test ClimateMachine.StateCheck.scdocheck(cbvector[end], refDat)
+    end
+
     return Q
+end
+
+function visualize(
+    simulation::Simulation;
+    statenames = [string(i) for i in 1:size(simulation.state)[2]],
+    resolution = (32, 32, 32),
+)
+    a_, statesize, b_ = size(simulation.state)
+    mpistate = simulation.state
+    grid = simulation.model.grid
+    grid_helper = GridHelper(grid)
+    r = coordinates(grid)
+    states = []
+    ϕ = ScalarField(copy(r[1]), grid_helper)
+    r = uniform_grid(Ω, resolution = resolution)
+    # statesymbol = vars(Q).names[i] # doesn't work for vectors
+    for i in 1:statesize
+        ϕ .= mpistate[:, i, :]
+        ϕnew = ϕ(r...)
+        push!(states, ϕnew)
+    end
+    visualize([states...], statenames = statenames)
 end
 
 # initialized on CPU so not problem, but could do kernel launch?

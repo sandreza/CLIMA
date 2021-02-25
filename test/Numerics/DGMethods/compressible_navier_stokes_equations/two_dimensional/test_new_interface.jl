@@ -4,21 +4,55 @@ include("TwoDimensionalCompressibleNavierStokesEquations.jl")
 
 ClimateMachine.init()
 
+setups = [
+    (;
+        name = "rusanov_periodic",
+        flux = RusanovNumericalFlux(),
+        periodicity = true,
+        Nover = 0,
+    ),
+    (;
+        name = "roeflux_periodic",
+        flux = RoeNumericalFlux(),
+        periodicity = true,
+        Nover = 0,
+    ),
+    (;
+        name = "rusanov",
+        flux = RusanovNumericalFlux(),
+        periodicity = false,
+        Nover = 0,
+    ),
+    (;
+        name = "roeflux",
+        flux = RoeNumericalFlux(),
+        periodicity = false,
+        Nover = 0,
+    ),
+    (;
+        name = "rusanov_overintegration",
+        flux = RusanovNumericalFlux(),
+        periodicity = false,
+        Nover = 1,
+    ),
+    (;
+        name = "roeflux_overintegration",
+        flux = RoeNumericalFlux(),
+        periodicity = false,
+        Nover = 1,
+    ),
+]
+
 #################
 # RUN THE TESTS #
 #################
 @testset "$(@__FILE__)" begin
-    ########
-    # Setup physical and numerical domains
-    ########
-    Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π)
-    grid = DiscretizedDomain(Ω, elements = 16, polynomialorder = 3)
+
+    include("refvals_bickley_jet.jl")
 
     ########
     # Define physical parameters and parameterizations
     ########
-    FT = eltype(grid.numerical.vgeo)
-
     parameters = (
         ϵ = 0.1,  # perturbation size for initial condition
         l = 0.5, # Gaussian width
@@ -28,27 +62,21 @@ ClimateMachine.init()
         g = 10,
     )
 
-    dissipation = ConstantViscosity{FT}(μ = 0, ν = 0, κ = 0)
-
     physics = FluidPhysics(;
         advection = NonLinearAdvectionTerm(),
-        dissipation = dissipation,
+        dissipation = ConstantViscosity{Float64}(μ = 0, ν = 0, κ = 0),
         coriolis = nothing,
         buoyancy = nothing,
     )
 
     ########
-    # Define boundary conditions and numerical fluxes
+    # Define boundary conditions
     ########
     ρu_bc = Impenetrable(FreeSlip())
     ρθ_bc = Insulating()
     ρu_bcs = (south = ρu_bc, north = ρu_bc)
     ρθ_bcs = (south = ρθ_bc, north = ρθ_bc)
     BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
-
-    flux = RoeNumericalFlux()
-
-    numerics = (; flux)
 
     ########
     # Define initial conditions
@@ -66,7 +94,7 @@ ClimateMachine.init()
     v₀(x, y, z, p) = -Ψ₀(x, y, z, p) * p.k * tan(p.k * x)
 
     ρ₀(x, y, z, p) = p.ρₒ
-    ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * (U₀(x, y, z, p) + p.ϵ * u₀(x, y, z, p))
+    ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * (p.ϵ * u₀(x, y, z, p) + U₀(x, y, z, p))
     ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * v₀(x, y, z, p)
     ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
     ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * sin(p.k * y)
@@ -79,41 +107,56 @@ ClimateMachine.init()
     # Define timestepping parameters
     ########
     start_time = 0
-    end_time = 1.0
+    end_time = 200.0
     Δt = 0.02
     method = LSRK54CarpenterKennedy
+
+    timestepper = TimeStepper(method = method, timestep = Δt)
 
     ########
     # Define callbacks
     ########
+    callbacks = (Info(), StateCheck(10))
 
-    callbacks = () # (Info(), )
+    for setup in setups
+        @testset "$(setup.name)" begin
+            Ωˣ = Periodic(-2π, 2π)
+            Ωʸ = IntervalDomain(-2π, 2π, periodic = setup.periodicity)
+            Ω = Ωˣ × Ωʸ
 
-    ########
-    # Create the things
-    ########
-    model = SpatialModel(
-        balance_law = Fluid2D(),
-        physics = physics,
-        numerics = numerics,
-        grid = grid,
-        boundary_conditions = BC,
-        parameters = parameters,
-    )
+            grid = DiscretizedDomain(
+                Ω,
+                elements = 16,
+                polynomialorder = 3 + setup.Nover,
+            )
 
-    timestepper = TimeStepper(method = method, timestep = Δt)
+            numerics = (flux = setup.flux, overintegration = setup.Nover)
 
-    simulation = Simulation(
-        model = model,
-        initial_conditions = initial_conditions,
-        timestepper = timestepper,
-        callbacks = callbacks,
-        simulation_time = (start_time, end_time),
-    )
+            model = SpatialModel(
+                balance_law = Fluid2D(),
+                physics = physics,
+                numerics = numerics,
+                grid = grid,
+                boundary_conditions = BC,
+                parameters = parameters,
+            )
 
-    ########
-    # Run the model
-    ########
-    include("refvals_bickley_jet.jl")
-    evolve!(simulation, model)
+            simulation = Simulation(
+                model = model,
+                initial_conditions = initial_conditions,
+                timestepper = timestepper,
+                callbacks = callbacks,
+                time = (; start = start_time, finish = end_time),
+            )
+
+            ########
+            # Run the model
+            ########
+            evolve!(
+                simulation,
+                model;
+                refDat = getproperty(refVals, Symbol(setup.name)),
+            )
+        end
+    end
 end
