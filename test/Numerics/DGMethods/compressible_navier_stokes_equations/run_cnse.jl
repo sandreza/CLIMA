@@ -6,11 +6,11 @@ ClimateMachine.init()
 ########
 # Setup physical and numerical domains
 ########
-Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π) × Interval(-2π, 2π)
+Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π)
 grid = DiscretizedDomain(
     Ω,
-    elements = (vertical = 2, horizontal = 2),
-    polynomialorder = (vertical = 1, horizontal = 1),
+    elements = 16,
+    polynomialorder = 3,
 )
 
 ########
