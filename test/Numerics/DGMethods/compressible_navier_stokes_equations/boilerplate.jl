@@ -18,6 +18,8 @@ using ClimateMachine.DGMethods.NumericalFluxes
 using ClimateMachine.BalanceLaws
 using ClimateMachine.ODESolvers
 
+import ClimateMachine.Mesh.Grids: polynomialorders
+
 # ×(a::SVector, b::SVector) = StaticArrays.cross(a, b)
 ⋅(a::SVector, b::SVector) = StaticArrays.dot(a, b)
 ⊗(a::SVector, b::SVector) = a * b'

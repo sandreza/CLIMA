@@ -1,5 +1,6 @@
 include("boilerplate.jl")
 include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
+include("bigfileofstuff.jl")
 
 ClimateMachine.init()
 
@@ -100,3 +101,24 @@ simulation = Simulation(
 ########
 
 evolve!(simulation, model)
+
+########
+# Visualize the Model
+########
+
+scene = visualize(simulation, statenames = ["ρ", "ρu", "ρv", "ρθ"])
+
+#######
+# Record Interaction
+#######
+seconds = 10
+fps = 30
+frames = round(Int, fps * seconds )
+record(scene, pwd() * "/example.mp4"; framerate = fps) do io
+    for i = 1:frames
+        sleep(1/fps)
+        recordframe!(io)
+    end
+end
+
+
