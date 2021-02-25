@@ -8,6 +8,7 @@ using StaticArrays
 using LinearAlgebra
 
 using ClimateMachine
+using ClimateMachine.Mesh.Filters
 using ClimateMachine.MPIStateArrays
 using ClimateMachine.VariableTemplates
 using ClimateMachine.Mesh.Geometry

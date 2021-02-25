@@ -11,7 +11,7 @@ ClimateMachine.init()
 ########
 # Setup physical and numerical domains
 ########
-Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π)
+Ω = Periodic(-2π, 2π) × Interval(-2π, 2π)
 grid = DiscretizedDomain(Ω, elements = 16, polynomialorder = 3)
 
 ########
@@ -20,12 +20,12 @@ grid = DiscretizedDomain(Ω, elements = 16, polynomialorder = 3)
 FT = eltype(grid.numerical.vgeo)
 
 parameters = (
-    ϵ = 0.1,  # perturbation size for initial condition
-    l = 0.5, # Gaussian width
-    k = 0.5, # Sinusoidal wavenumber
+    ϵ  = 0.1,  # perturbation size for initial condition
+    l  = 0.5,  # Gaussian width
+    k  = 0.5,  # Sinusoidal wavenumber
     ρₒ = 1.0, # reference density
-    c = 2,
-    g = 10,
+    c  = 2,
+    g  = 10,
 )
 
 dissipation = ConstantViscosity{FT}(μ = 0, ν = 0, κ = 0)
@@ -40,15 +40,16 @@ physics = FluidPhysics(;
 ########
 # Define boundary conditions and numerical fluxes
 ########
-ρu_bc = Impenetrable(FreeSlip())
+ρu_bc = Impenetrable(NoSlip())
 ρθ_bc = Insulating()
 ρu_bcs = (south = ρu_bc, north = ρu_bc)
 ρθ_bcs = (south = ρθ_bc, north = ρθ_bc)
 BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
 flux = RoeNumericalFlux()
+overintegration = 1
 
-numerics = (; flux)
+numerics = (; flux, overintegration)
 
 ########
 # Define initial conditions
@@ -115,7 +116,6 @@ simulation = Simulation(
 # Run the model
 ########
 evolve!(simulation, model)
-
 
 ########
 # Visualize the Model
