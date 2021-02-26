@@ -118,7 +118,7 @@ setups = [
     ########
     callbacks = (Info(), StateCheck(10))
 
-    for setup in setups
+    for setup in setups[6:6]
         @testset "$(setup.name)" begin
             Ωˣ = Periodic(-2π, 2π)
             Ωʸ = IntervalDomain(-2π, 2π, periodic = setup.periodicity)

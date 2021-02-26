@@ -1,16 +1,16 @@
 include("boilerplate.jl")
-include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
+include("two_dimensional/TwoDimensionalCompressibleNavierStokesEquations.jl")
 
 ClimateMachine.init()
 
 ########
 # Setup physical and numerical domains
 ########
-Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π) × Interval(-2π, 2π)
+Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π)
 grid = DiscretizedDomain(
     Ω,
-    elements = (vertical = 2, horizontal = 2),
-    polynomialorder = (vertical = 1, horizontal = 1),
+    elements = (vertical = 8, horizontal = 8),
+    polynomialorder = (vertical = 3, horizontal = 3),
 )
 
 ########
@@ -20,26 +20,28 @@ FT = eltype(grid.numerical.vgeo)
 
 parameters = (
     ϵ = 0.1,  # perturbation size for initial condition
+    l = 0.5, # Gaussian width
+    k = 0.5, # Sinusoidal wavenumber
     ρₒ = 1.0, # reference density
-    cₛ = 1.0, # linearized sound speed in horizontal
-    cᶻ = 1.0, # linearized sound speed in vertical 
+    c = 2,
+    g = 10,
 )
-
-buoyancy = Buoyancy{FT}(α = 2e-4, g = 10)
-dissipation = ConstantViscosity{FT}(μ = 0, ν = 1e-6, κ = 1e-12)
 
 physics = FluidPhysics(;
     advection = NonLinearAdvectionTerm(),
-    dissipation = dissipation,
+    dissipation = ConstantViscosity{Float64}(μ = 0, ν = 0, κ = 0),
     coriolis = nothing,
     buoyancy = nothing,
 )
 
+
 ########
 # Define boundary conditions and numerical fluxes
 ########
-ρu_bcs = (bottom = Impenetrable(NoSlip()), top = Impenetrable(FreeSlip()))
-ρθ_bcs = (bottom = Insulating(), top = TemperatureFlux((state, aux, t) -> 1e-6))
+ρu_bc = Impenetrable(FreeSlip())
+ρθ_bc = Insulating()
+ρu_bcs = (south = ρu_bc, north = ρu_bc)
+ρθ_bcs = (south = ρθ_bc, north = ρθ_bc)
 BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
 flux = RoeNumericalFlux()
@@ -49,35 +51,46 @@ numerics = (; flux)
 ########
 # Define initial conditions
 ########
-ρ₀(x, y, z, p) = p.ρₒ
-ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * sin(x) * sin(y)
-ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(x) * sin(y)
-ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
-ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (0.01 * z)
+U₀(x, y, z, p) = cosh(y)^(-2)
 
-ρu⃗₀(x, y, z, p) = @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
+# Slightly off-center vortical perturbations
+Ψ₀(x, y, z, p) =
+    exp(-(y + p.l / 10)^2 / (2 * (p.l^2))) * cos(p.k * x) * cos(p.k * y)
+
+# Vortical velocity fields (ũ, ṽ) = (-∂ʸ, +∂ˣ) ψ̃
+u₀(x, y, z, p) = Ψ₀(x, y, z, p) * (p.k * tan(p.k * y) + y / (p.l^2))
+v₀(x, y, z, p) = -Ψ₀(x, y, z, p) * p.k * tan(p.k * x)
+
+ρ₀(x, y, z, p) = p.ρₒ
+ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * (p.ϵ * u₀(x, y, z, p) + U₀(x, y, z, p))
+ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * v₀(x, y, z, p)
+ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
+ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * sin(p.k * y)
+
+ρu⃗₀(x, y, z, p) =
+    @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
 initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 
 ########
 # Define timestepping parameters
 ########
 start_time = 0
-end_time = 1.0
+end_time = 50.0
 method = SSPRK22Heuns
 
-Δt = calculate_dt(grid, wavespeed = parameters.cₛ, cfl = 0.1)
+Δt = calculate_dt(grid, wavespeed = sqrt(parameters.g), cfl = 0.3)
 
 ########
 # Define callbacks
 ########
 
-callbacks = (Info(),)
+callbacks = (Info(), StateCheck(10))
 
 ########
 # Create the things
 ########
 model = SpatialModel(
-    balance_law = Fluid3D(),
+    balance_law = Fluid2D(),
     physics = physics,
     numerics = numerics,
     grid = grid,
@@ -92,7 +105,7 @@ simulation = Simulation(
     initial_conditions = initial_conditions,
     timestepper = timestepper,
     callbacks = callbacks,
-    simulation_time = (start_time, end_time),
+    time = (; start = start_time, finish = end_time),
 )
 
 ########
