@@ -85,8 +85,7 @@ method = SSPRK22Heuns
 ########
 
 jldcallback = JLD2State(iteration = 100, filepath = "test.jld2")
-callbacks = (jldcallback, )
-# callbacks = (Info(), StateCheck(10), jldcallback)
+callbacks = (Info(), StateCheck(10), jldcallback)
 
 ########
 # Create the things

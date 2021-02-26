@@ -14,7 +14,7 @@ end
 
 function create_callback(output::JLD2State, simulation::Simulation, odesolver)
     # Initialize output
-    output.overwrite && isfile(output.filepath) && rm(output.filepath; force = true)
+    output.overwrite && isfile(output.filepath) && rm(output.filepath; force = output.overwrite)
 
     Q = simulation.state
     mpicomm = MPI.COMM_WORLD
