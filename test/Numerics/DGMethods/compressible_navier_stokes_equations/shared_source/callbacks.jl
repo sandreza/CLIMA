@@ -6,6 +6,45 @@ struct StateCheck{T} <: AbstractCallback
     number_of_checks::T
 end
 
+@Base.kwdef struct JLD2State{T, V, B} <: AbstractCallback
+    iteration::T
+    filepath::V
+    overwrite::B = true
+end
+
+function create_callback(output::JLD2State, simulation::Simulation, odesolver)
+    # Initialize output
+    output.overwrite && isfile(output.filepath) && rm(output.filepath; force = true)
+
+    Q = simulation.state
+    mpicomm = MPI.COMM_WORLD
+    iteration = output.iteration
+
+    steps = ClimateMachine.ODESolvers.getsteps(odesolver)
+    time = ClimateMachine.ODESolvers.gettime(odesolver)
+
+    file = jldopen(output.filepath, "a+")
+    JLD2.Group(file, "state")
+    JLD2.Group(file, "time")
+    file["state"][string(steps)] = Array(Q)
+    file["time"][string(steps)] = time
+    close(file)
+
+
+    jldcallback = ClimateMachine.GenericCallbacks.EveryXSimulationSteps(
+        iteration
+    ) do (s = false)
+        steps = ClimateMachine.ODESolvers.getsteps(odesolver)
+        time = ClimateMachine.ODESolvers.gettime(odesolver)
+        @info steps, time
+        file = jldopen(output.filepath, "a+")
+        file["state"][string(steps)] = Array(Q)
+        file["time"][string(steps)] = time
+        close(file)
+        return nothing
+    end
+end
+
 function create_callbacks(simulation::Simulation, odesolver)
     callbacks = simulation.callbacks
 

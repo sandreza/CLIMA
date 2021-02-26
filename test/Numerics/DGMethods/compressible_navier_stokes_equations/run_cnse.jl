@@ -75,7 +75,7 @@ initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 # Define timestepping parameters
 ########
 start_time = 0
-end_time = 50.0
+end_time = 10.0
 method = SSPRK22Heuns
 
 Δt = calculate_dt(grid, wavespeed = sqrt(parameters.g), cfl = 0.3)
@@ -84,7 +84,9 @@ method = SSPRK22Heuns
 # Define callbacks
 ########
 
-callbacks = (Info(), StateCheck(10))
+jldcallback = JLD2State(iteration = 100, filepath = "test.jld2")
+callbacks = (jldcallback, )
+# callbacks = (Info(), StateCheck(10), jldcallback)
 
 ########
 # Create the things

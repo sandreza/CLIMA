@@ -98,10 +98,14 @@ function evolve!(simulation, spatialmodel; refDat = ())
     end
 
     ## Check results against reference
-
-    ClimateMachine.StateCheck.scprintref(cbvector[end])
-    if length(refDat) > 0
-        @test ClimateMachine.StateCheck.scdocheck(cbvector[end], refDat)
+    callbacks = simulation.callbacks
+    stcheck = maximum(typeof.(callbacks) .<: StateCheck)
+    if stcheck==true
+        state_check_ind = argmax(typeof.(callbacks) .<: StateCheck)
+        ClimateMachine.StateCheck.scprintref(cbvector[state_check_ind])
+        if length(refDat) > 0
+            @test ClimateMachine.StateCheck.scdocheck(cbvector[end], refDat)
+        end
     end
 
     return Q
