@@ -51,7 +51,10 @@ function evolve!(simulation, spatialmodel; refDat = ())
         p = spatialmodel.parameters
         ic = simulation.initial_conditions[s]
         ϕ = getproperty(Q, s)
-        set_ic!(ϕ, ic, x, y, z, p)
+        aϕ = Array(ϕ)
+        ax, ay, az = Array.((x,y,z))
+        set_ic!(aϕ, ic, ax, ay, az, p)
+        ϕ .= CUDA.CuArray(aϕ)
     end
 
     Ns = polynomialorders(spatialmodel)
@@ -104,7 +107,7 @@ function evolve!(simulation, spatialmodel; refDat = ())
         @test ClimateMachine.StateCheck.scdocheck(cbvector[end], refDat)
     end
 
-    return Q
+    return nothing
 end
 
 function visualize(
@@ -140,7 +143,7 @@ function set_ic!(ϕ, s::Function, x, y, z, p)
     @inbounds for i in eachindex(x)
         @inbounds for j in 1:states
             ϕʲ = view(ϕ, :, j, :)
-            ϕʲ[i] = s(x[i], y[i], z[i], p)[j]
+            ϕʲ .= s(x[i], y[i], z[i], p)[j]
         end
     end
     return nothing
