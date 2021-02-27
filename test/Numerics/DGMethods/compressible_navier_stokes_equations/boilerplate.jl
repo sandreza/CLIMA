@@ -129,11 +129,7 @@ function uniform_grid(Ω::AbstractDomain; resolution = (32, 32, 32))
     return Tuple(uniform)
 end
 
-function visualize(
-    simulation::Simulation;
-    statenames = [string(i) for i in 1:size(simulation.state)[2]],
-    resolution = (32, 32, 32),
-)
+function vizstates(simulation::Simulation, resolution)
     a_, statesize, b_ = size(simulation.state)
     mpistate = simulation.state
     grid = simulation.model.grid
@@ -148,7 +144,25 @@ function visualize(
         ϕnew = ϕ(r...)
         push!(states, ϕnew)
     end
+    return states
+end
+
+function visualize(
+    simulation::Simulation;
+    statenames = [string(i) for i in 1:size(simulation.state)[2]],
+    resolution = (32, 32, 32),
+)
+    states = vizstates(simulation, resolution)
     visualize([states...], statenames = statenames)
+end
+
+function volumeslice(
+    simulation::Simulation;
+    statenames = [string(i) for i in 1:size(simulation.state)[2]],
+    resolution = (32, 32, 32),
+)
+    states = vizstates(simulation, resolution)
+    volumeslice([states...], statenames = statenames)
 end
 
 # initialized on CPU so not problem, but could do kernel launch?
