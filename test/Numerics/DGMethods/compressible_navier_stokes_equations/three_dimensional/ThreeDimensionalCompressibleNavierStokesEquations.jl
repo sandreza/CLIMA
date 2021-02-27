@@ -219,11 +219,18 @@ end
     ρu = state.ρu
     ρθ = state.ρθ
 
-    cₛ = model.cₛ
-    ρₒ = model.ρₒ
-
     flux.ρ += ρu
-    flux.ρu += (cₛ * ρ)^2 / (2 * ρₒ) * I
+
+
+    # pressure
+    ρ = state.ρ
+    ρₒ = model.ρₒ
+    cₛ² = model.cₛ^2
+    cᶻ² = model.cᶻ^2
+    c² = Diagonal(@SVector[cₛ², cₛ², cᶻ²])
+    p = ρ^2 / (2 * ρₒ) * c²
+
+    flux.ρu += p
 
     advective_flux!(model, model.advection, flux, state, aux, t)
 
@@ -365,7 +372,7 @@ function numerical_flux_first_order!(
     FT = eltype(fluxᵀn)
 
     # constants and normal vectors
-    cₛ = model.cₛ
+    cₛ = abs(n⁻[3]) * (model.cᶻ - model.cₛ) + model.cₛ
     ρₒ = model.ρₒ
 
     # - states
