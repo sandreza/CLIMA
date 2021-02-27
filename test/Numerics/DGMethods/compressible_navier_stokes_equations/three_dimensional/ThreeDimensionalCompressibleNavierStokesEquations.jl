@@ -42,6 +42,7 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
     boundary_conditions::BC
     cₛ::FT
     ρₒ::FT
+    cᶻ::FT
     function ThreeDimensionalCompressibleNavierStokesEquations{FT}(
         domain::D,
         advection::A,
@@ -51,6 +52,7 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
         boundary_conditions::BC;
         cₛ = FT(sqrt(10)),  # m/s
         ρₒ = FT(1),  #kg/m³
+        cᶻ = FT(sqrt(10)),
     ) where {FT <: AbstractFloat, D, A, T, C, F, BC}
         return new{D, A, T, C, F, BC, FT}(
             domain,
@@ -61,6 +63,7 @@ struct ThreeDimensionalCompressibleNavierStokesEquations{
             boundary_conditions,
             cₛ,
             ρₒ,
+            cᶻ,
         )
     end
 end
@@ -499,6 +502,7 @@ function DGModel(model::SpatialModel{BL}) where {BL <: AbstractFluid3D}
         bcs,
         ρₒ = params.ρₒ,
         cₛ = params.cₛ,
+        cᶻ = params.cᶻ,
     )
 
     numerical_flux_first_order = model.numerics.flux # should be a function
