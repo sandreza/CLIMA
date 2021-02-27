@@ -1,6 +1,7 @@
 #######
 # useful concepts for dispatch
 #######
+import ClimateMachine.Mesh.Grids: polynomialorders
 
 """
 Advection terms

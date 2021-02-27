@@ -1,16 +1,16 @@
 include("boilerplate.jl")
 include("two_dimensional/TwoDimensionalCompressibleNavierStokesEquations.jl")
-
+include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
 ClimateMachine.init()
 
 ########
 # Setup physical and numerical domains
 ########
-Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π)
+Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π) × Periodic(-2π, 2π)
 grid = DiscretizedDomain(
     Ω,
-    elements = (vertical = 8, horizontal = 8),
-    polynomialorder = (vertical = 3, horizontal = 3),
+    elements = (vertical = 1, horizontal = 8),
+    polynomialorder = (vertical = 1, horizontal = 3),
 )
 
 ########
@@ -25,6 +25,7 @@ parameters = (
     ρₒ = 1.0, # reference density
     c = 2,
     g = 10,
+    cₛ = 2,
 )
 
 physics = FluidPhysics(;
@@ -75,7 +76,7 @@ initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 # Define timestepping parameters
 ########
 start_time = 0
-end_time = 10.0
+end_time = 80.0
 method = SSPRK22Heuns
 
 Δt = calculate_dt(grid, wavespeed = sqrt(parameters.g), cfl = 0.3)
@@ -91,7 +92,7 @@ callbacks = (Info(), StateCheck(10), jldcallback)
 # Create the things
 ########
 model = SpatialModel(
-    balance_law = Fluid2D(),
+    balance_law = Fluid3D(),
     physics = physics,
     numerics = numerics,
     grid = grid,
@@ -112,5 +113,10 @@ simulation = Simulation(
 ########
 # Run the model
 ########
-
+tic = Base.time()
 evolve!(simulation, model)
+toc = Base.time()
+println("The amount of time for the simulation was ", toc -tic)
+
+##
+visualize(simulation)

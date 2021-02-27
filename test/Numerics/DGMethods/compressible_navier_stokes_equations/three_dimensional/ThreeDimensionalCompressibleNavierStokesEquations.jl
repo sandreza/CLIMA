@@ -453,6 +453,17 @@ splits boundary condition application into velocity
     return nothing
 end
 
+
+function cnse_init_aux!(::CNSE3D, aux, geom)
+    @inbounds begin
+        aux.x = geom.coord[1]
+        aux.y = geom.coord[2]
+        aux.z = geom.coord[3]
+    end
+
+    return nothing
+end
+
 include("bc_momentum.jl")
 include("bc_temperature.jl")
 

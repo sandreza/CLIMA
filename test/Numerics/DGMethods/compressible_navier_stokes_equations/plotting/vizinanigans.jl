@@ -378,7 +378,7 @@ function visualize(
     cbar.width = Relative(1 / 3)
     cbar.height = Relative(5 / 6)
     cbar.halign = :center
-    cbar.flipaxisposition = true
+    # cbar.flipaxisposition = true
     # cbar.labelpadding = -350
     cbar.labelsize = 50
 

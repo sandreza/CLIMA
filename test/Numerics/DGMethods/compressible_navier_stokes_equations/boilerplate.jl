@@ -8,6 +8,8 @@ using StaticArrays
 using LinearAlgebra
 
 using ClimateMachine
+using CUDA
+using GLMakie
 using ClimateMachine.Mesh.Filters
 using ClimateMachine.MPIStateArrays
 using ClimateMachine.VariableTemplates
@@ -31,7 +33,9 @@ include("shared_source/grids.jl")
 include("shared_source/FluidBC.jl")
 include("shared_source/abstractions.jl")
 include("shared_source/callbacks.jl")
-
+include("plotting/bigfileofstuff.jl")
+include("plotting/ScalarFields.jl")
+include("plotting/vizinanigans.jl")
 """
 function coordinates(grid::DiscontinuousSpectralElementGrid)
 # Description
@@ -51,7 +55,11 @@ function evolve!(simulation, spatialmodel; refDat = ())
         p = spatialmodel.parameters
         ic = simulation.initial_conditions[s]
         ϕ = getproperty(Q, s)
-        set_ic!(ϕ, ic, x, y, z, p)
+        aϕ = Array(ϕ)
+        ax, ay, az = Array.((x,y,z))
+        set_ic!(aϕ, ic, ax, ay, az, p)
+        CM_Array = ClimateMachine.array_type()
+        ϕ .= CM_Array(aϕ)
     end
 
     Ns = polynomialorders(spatialmodel)
@@ -109,6 +117,16 @@ function evolve!(simulation, spatialmodel; refDat = ())
     end
 
     return Q
+end
+
+function uniform_grid(Ω::AbstractDomain; resolution = (32, 32, 32))
+    dims = ndims(Ω)
+    resolution = resolution[1:dims]
+    uniform = []
+    for i in 1:dims
+        push!(uniform, range(Ω[i].min, Ω[i].max, length = resolution[i]))
+    end
+    return Tuple(uniform)
 end
 
 function visualize(
