@@ -26,7 +26,7 @@ parameters = (
     c = 2,
     g = 10,
     cₛ = 2,
-    cᶻ = 3,
+    cᶻ = 2,
 )
 
 physics = FluidPhysics(;
