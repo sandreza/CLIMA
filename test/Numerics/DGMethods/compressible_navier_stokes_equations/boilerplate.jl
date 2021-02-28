@@ -9,7 +9,6 @@ using LinearAlgebra
 
 using ClimateMachine
 using CUDA
-using GLMakie
 using ClimateMachine.Mesh.Filters
 using ClimateMachine.MPIStateArrays
 using ClimateMachine.VariableTemplates
@@ -35,7 +34,7 @@ include("shared_source/abstractions.jl")
 include("shared_source/callbacks.jl")
 include("plotting/bigfileofstuff.jl")
 include("plotting/ScalarFields.jl")
-include("plotting/vizinanigans.jl")
+# include("plotting/vizinanigans.jl")
 """
 function coordinates(grid::DiscontinuousSpectralElementGrid)
 # Description
