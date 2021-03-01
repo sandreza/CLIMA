@@ -13,7 +13,7 @@ overintegration = 1
 grid = DiscretizedDomain(
     Ω,
     elements = (vertical = 4, horizontal = 16),
-    polynomialorder = (vertical = 3+overintegration, horizontal = 3+overintegration),
+    polynomialorder = (vertical = 1+overintegration, horizontal = 1+overintegration),
 )
 
 ########
@@ -24,14 +24,14 @@ Lx, Ly, Lz = length(Ω)
 scale = 1.0 # Lz / Lx
 parameters = (
     ρₒ = 1.0,  # reference density
-    ϵ = 1e-4,  # perturbation velocity amplitude
+    ϵ = 0.0,  # perturbation velocity amplitude
     c = 2,     # Rusanov wavespeed
-    g = 10,    # gravity
+    g = 1.0,    # gravity
     cₛ = 1.0,  # horizontal linearized sound speed
     cᶻ = scale * 1.0,  # vertical linearized sound speed
     α = 2e-4,  # should probably multiply by cᶻ^2 due to hydrostatic balance
-    ν = 1e-2,  # kg / (m s)
-    κ = 1e-4,  # kg / (m s)
+    ν = 1e2,  # kg / (m s)
+    κ = 1e2,  # kg / (m s)
     Lx = Lx,   # domain length in horizontal
     Ly = Ly,   # domain length in horizontal
     Lz = Lz,   # domain length in vertical
@@ -60,7 +60,7 @@ physics = FluidPhysics(;
 ########
 ρu_bc = Impenetrable(FreeSlip())
 ρθ_bc = Insulating()
-top_ρθ_bc = TemperatureFlux((state, aux, t) -> 1e-5) #+takes away heat from top
+top_ρθ_bc = Insulating() #+takes away heat from top
 ρu_bcs = (bottom = ρu_bc, top = ρu_bc)
 ρθ_bcs = (bottom = ρθ_bc, top = top_ρθ_bc)
 BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
@@ -88,10 +88,10 @@ initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 ########
 days = 86400.0
 start_time = 0
-end_time = 0.5days
+end_time = 30days
 method = SSPRK22Heuns
 
-Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, cfl = 0.2)
+Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, viscocity = parameters.ν, cfl = 0.2)
 
 ########
 # Define callbacks
