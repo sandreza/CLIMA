@@ -43,10 +43,17 @@ dissipation = ConstantViscosity{Float64}(
     κ = parameters.κ
 )
 
+coriolis = fPlaneCoriolis{Float64}(
+        fₒ = 1e-4, # Hz
+        β = 0.0, # Hz/m
+) 
+
+
+
 physics = FluidPhysics(;
     advection = NonLinearAdvectionTerm(),
     dissipation = dissipation,
-    coriolis = nothing,
+    coriolis = coriolis,
     buoyancy = Buoyancy{FT}(α = parameters.α, g = parameters.g),
 )
 
@@ -56,8 +63,8 @@ physics = FluidPhysics(;
 ρu_bc = Impenetrable(FreeSlip())
 ρθ_bc = Insulating()
 top_ρθ_bc = TemperatureFlux((state, aux, t) -> 1e-5) #+takes away heat from top
-ρu_bcs = (south = ρu_bc, north = ρu_bc)
-ρθ_bcs = (south = ρθ_bc, north = top_ρθ_bc)
+ρu_bcs = (bottom = ρu_bc, top = ρu_bc)
+ρθ_bcs = (bottom = ρθ_bc, top = top_ρθ_bc)
 BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
 flux = RoeNumericalFlux()
@@ -83,10 +90,10 @@ initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 ########
 days = 86400.0
 start_time = 0
-end_time = 1.0days
+end_time = 0.5days
 method = SSPRK22Heuns
 
-Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, cfl = 0.3)
+Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, cfl = 0.2)
 
 ########
 # Define callbacks

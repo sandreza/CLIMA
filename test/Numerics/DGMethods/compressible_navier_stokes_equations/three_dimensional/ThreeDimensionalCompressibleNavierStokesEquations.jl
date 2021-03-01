@@ -474,6 +474,8 @@ function cnse_init_aux!(::CNSE3D, aux, geom)
     return nothing
 end
 
+@inline coriolis_parameter(model, coriolis::fPlaneCoriolis, coords) = coriolis.fₒ + coriolis.β * coords.y
+
 include("bc_momentum.jl")
 include("bc_temperature.jl")
 
