@@ -311,7 +311,7 @@ coriolis_force!(::CNSE3D, ::Nothing, _...) = nothing
     t,
 )
     # f × u
-    f = [-0, -0, coriolis_parameter(model, coriolis, aux.coords)]
+    f =  @SVector[-0, -0, coriolis_parameter(model, coriolis, aux)]
     ρu = state.ρu
 
     source.ρu -= f × ρu

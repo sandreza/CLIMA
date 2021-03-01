@@ -1,7 +1,7 @@
 include("boilerplate.jl")
 include("two_dimensional/TwoDimensionalCompressibleNavierStokesEquations.jl")
 include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
-ClimateMachine.init()
+ClimateMachine.init(disable_gpu = false)
 # include("test/Numerics/DGMethods/compressible_navier_stokes_equations/convection.jl")
 
 ########
@@ -9,7 +9,7 @@ ClimateMachine.init()
 ########
 Ω = Periodic(-100, 100)^2 × Interval(-100, 0)
 
-overintegration = 1
+overintegration = 0
 grid = DiscretizedDomain(
     Ω,
     elements = (vertical = 16, horizontal = 16),
