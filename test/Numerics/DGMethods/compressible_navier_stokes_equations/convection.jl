@@ -9,7 +9,7 @@ ClimateMachine.init(disable_gpu = false)
 ########
 Ω = Periodic(-100, 100)^2 × Interval(-100, 0)
 
-overintegration = 0
+overintegration = 1
 grid = DiscretizedDomain(
     Ω,
     elements = (vertical = 16, horizontal = 16),
@@ -47,8 +47,6 @@ coriolis = fPlaneCoriolis{Float64}(
         fₒ = 1e-4, # Hz
         β = 0.0, # Hz/m
 ) 
-
-
 
 physics = FluidPhysics(;
     advection = NonLinearAdvectionTerm(),

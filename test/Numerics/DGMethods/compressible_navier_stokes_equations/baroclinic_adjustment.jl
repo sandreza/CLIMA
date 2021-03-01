@@ -1,73 +1,83 @@
 include("boilerplate.jl")
 include("two_dimensional/TwoDimensionalCompressibleNavierStokesEquations.jl")
 include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
-ClimateMachine.init()
+ClimateMachine.init(disable_gpu = false)
+# include("test/Numerics/DGMethods/compressible_navier_stokes_equations/convection.jl")
 
 ########
 # Setup physical and numerical domains
 ########
-Ω = Periodic(-2π, 2π) × Periodic(-2π, 2π) × Periodic(-2π, 2π)
+Ω = Periodic(0, 250e3)^2 × Interval(-1e3, 0)
+
+overintegration = 1
 grid = DiscretizedDomain(
     Ω,
-    elements = (vertical = 1, horizontal = 8),
-    polynomialorder = (vertical = 1, horizontal = 3),
+    elements = (vertical = 4, horizontal = 16),
+    polynomialorder = (vertical = 3+overintegration, horizontal = 3+overintegration),
 )
 
 ########
 # Define physical parameters and parameterizations
 ########
 FT = eltype(grid.numerical.vgeo)
-
+Lx, Ly, Lz = length(Ω)
+scale = 1.0 # Lz / Lx
 parameters = (
-    ϵ = 0.1,  # perturbation size for initial condition
-    l = 0.5, # Gaussian width
-    k = 0.5, # Sinusoidal wavenumber
-    ρₒ = 1.0, # reference density
-    c = 2,
-    g = 10,
-    cₛ = 2,
-    cᶻ = 3,
+    ρₒ = 1.0,  # reference density
+    ϵ = 1e-4,  # perturbation velocity amplitude
+    c = 2,     # Rusanov wavespeed
+    g = 10,    # gravity
+    cₛ = 1.0,  # horizontal linearized sound speed
+    cᶻ = scale * 1.0,  # vertical linearized sound speed
+    α = 2e-4,  # should probably multiply by cᶻ^2 due to hydrostatic balance
+    ν = 1e-2,  # kg / (m s)
+    κ = 1e-4,  # kg / (m s)
+    Lx = Lx,   # domain length in horizontal
+    Ly = Ly,   # domain length in horizontal
+    Lz = Lz,   # domain length in vertical
 )
+
+dissipation = ConstantViscosity{Float64}(
+    μ = 0, 
+    ν = parameters.ν, 
+    κ = parameters.κ
+)
+
+coriolis = fPlaneCoriolis{Float64}(
+        fₒ = 1e-4, # Hz
+        β = 0.0, # Hz/m
+) 
 
 physics = FluidPhysics(;
     advection = NonLinearAdvectionTerm(),
-    dissipation = ConstantViscosity{Float64}(μ = 0, ν = 0, κ = 0),
-    coriolis = nothing,
-    buoyancy = nothing,
+    dissipation = dissipation,
+    coriolis = coriolis,
+    buoyancy = Buoyancy{FT}(α = parameters.α, g = parameters.g),
 )
-
 
 ########
 # Define boundary conditions and numerical fluxes
 ########
 ρu_bc = Impenetrable(FreeSlip())
 ρθ_bc = Insulating()
-ρu_bcs = (south = ρu_bc, north = ρu_bc)
-ρθ_bcs = (south = ρθ_bc, north = ρθ_bc)
+top_ρθ_bc = TemperatureFlux((state, aux, t) -> 1e-5) #+takes away heat from top
+ρu_bcs = (bottom = ρu_bc, top = ρu_bc)
+ρθ_bcs = (bottom = ρθ_bc, top = top_ρθ_bc)
 BC = (ρθ = ρθ_bcs, ρu = ρu_bcs)
 
 flux = RoeNumericalFlux()
 
-numerics = (; flux)
+numerics = (; flux, overintegration)
 
 ########
 # Define initial conditions
 ########
-U₀(x, y, z, p) = cosh(y)^(-2)
 
-# Slightly off-center vortical perturbations
-Ψ₀(x, y, z, p) =
-    exp(-(y + p.l / 10)^2 / (2 * (p.l^2))) * cos(p.k * x) * cos(p.k * y)
-
-# Vortical velocity fields (ũ, ṽ) = (-∂ʸ, +∂ˣ) ψ̃
-u₀(x, y, z, p) = Ψ₀(x, y, z, p) * (p.k * tan(p.k * y) + y / (p.l^2))
-v₀(x, y, z, p) = -Ψ₀(x, y, z, p) * p.k * tan(p.k * x)
-
-ρ₀(x, y, z, p) = p.ρₒ
-ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * (p.ϵ * u₀(x, y, z, p) + U₀(x, y, z, p))
-ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * v₀(x, y, z, p)
-ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
-ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * sin(p.k * y)
+ρ₀(x, y, z, p) = p.ρₒ # * ( 1 +  ( p.α * p.g / p.cᶻ^2) * z^2 / (2 * p.Lz))
+ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(2π*y/p.Ly)*sin(2π*z/p.Lz) 
+ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(2π*x/p.Lx)*sin(2π*z/p.Lz)
+ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(8π*x/p.Ly)*sin(8π*y/p.Ly)
+ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (4e-5*min(max(0, y-225e3), 50e3) + 2e-3*z + 0.0001*rand())
 
 ρu⃗₀(x, y, z, p) =
     @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
@@ -76,19 +86,20 @@ initial_conditions = (ρ = ρ₀, ρu = ρu⃗₀, ρθ = ρθ₀)
 ########
 # Define timestepping parameters
 ########
+days = 86400.0
 start_time = 0
-end_time = 1.0
+end_time = 0.5days
 method = SSPRK22Heuns
 
-Δt = calculate_dt(grid, wavespeed = sqrt(parameters.g), cfl = 0.3)
+Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, cfl = 0.2)
 
 ########
 # Define callbacks
 ########
-
-jldcallback = JLD2State(iteration = 100, filepath = "test.jld2")
+iteration = floor(Int, end_time / Δt)
+jldcallback = JLD2State(iteration = iteration, filepath = "convection.jld2")
 callbacks = (Info(), StateCheck(10), jldcallback)
-callbacks = (Info(),)
+callbacks = (Info(), StateCheck(10))
 
 ########
 # Create the things
@@ -118,4 +129,15 @@ simulation = Simulation(
 tic = Base.time()
 evolve!(simulation, model)
 toc = Base.time()
-println("The amount of time for the simulation was ", toc -tic)
+println("The amount of time for the simulation was ", toc -tic, " seconds")
+
+##
+ρθ = Array(simulation.state.ρθ)
+cpu_grid = DiscretizedDomain(
+    grid.domain;
+    elements = grid.resolution.elements,
+    polynomialorder = grid.resolution.polynomialorder,
+    array = Array,
+)
+
+@save "eddying_channel.jld2" ρθ cpu_grid
