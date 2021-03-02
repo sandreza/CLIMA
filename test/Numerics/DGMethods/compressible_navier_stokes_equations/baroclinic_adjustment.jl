@@ -7,13 +7,13 @@ ClimateMachine.init(disable_gpu = false)
 ########
 # Setup physical and numerical domains
 ########
-Ω = Periodic(0, 250e3)^2 × Interval(-1e3, 0)
+Ω = Periodic(0, 250e3) × Interval(0, 500e3) × Interval(-1e3, 0)
 
 overintegration = 1
 grid = DiscretizedDomain(
     Ω,
-    elements = (vertical = 4, horizontal = 16),
-    polynomialorder = (vertical = 1+overintegration, horizontal = 1+overintegration),
+    elements = (32, 64, 4),
+    polynomialorder = (vertical = 1+overintegration, horizontal = 3+overintegration),
 )
 
 ########
@@ -27,11 +27,11 @@ parameters = (
     ϵ = 0.0,  # perturbation velocity amplitude
     c = 2,     # Rusanov wavespeed
     g = 1.0,    # gravity
-    cₛ = 1.0,  # horizontal linearized sound speed
-    cᶻ = scale * 1.0,  # vertical linearized sound speed
+    cₛ = 10.0,  # horizontal linearized sound speed
+    cᶻ = 1.0,  # vertical linearized sound speed
     α = 2e-4,  # should probably multiply by cᶻ^2 due to hydrostatic balance
-    ν = 1e2,  # kg / (m s)
-    κ = 1e2,  # kg / (m s)
+    ν = 2e1,  # kg / (m s)
+    κ = 2e1,  # kg / (m s)
     Lx = Lx,   # domain length in horizontal
     Ly = Ly,   # domain length in horizontal
     Lz = Lz,   # domain length in vertical
@@ -73,11 +73,11 @@ numerics = (; flux, overintegration)
 # Define initial conditions
 ########
 
-ρ₀(x, y, z, p) = p.ρₒ # * ( 1 +  ( p.α * p.g / p.cᶻ^2) * z^2 / (2 * p.Lz))
+ρ₀(x, y, z, p) = p.ρₒ * (1 + p.α * p.g * 2 * -z/p.Lz) #( 1 +  ( p.α * p.g / p.cᶻ^2) * (z^2 / p.Lz + (z + p.Lz) * (4e-5*min(max(0, y-225e3), 50e3) - 2 ) ))
 ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(2π*y/p.Ly)*sin(2π*z/p.Lz) 
 ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(2π*x/p.Lx)*sin(2π*z/p.Lz)
 ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(8π*x/p.Ly)*sin(8π*y/p.Ly)
-ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (4e-5*min(max(0, y-225e3), 50e3) + 2e-3*z + 0.0001*rand())
+ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (-2.0 + 4e-5*min(max(0, y-225e3), 50e3) + 2*z/p.Lz + 0.0001*rand())
 
 ρu⃗₀(x, y, z, p) =
     @SVector [ρu₀(x, y, z, p), ρv₀(x, y, z, p), ρw₀(x, y, z, p)]
@@ -96,10 +96,10 @@ method = SSPRK22Heuns
 ########
 # Define callbacks
 ########
-iteration = floor(Int, end_time / Δt)
-jldcallback = JLD2State(iteration = iteration, filepath = "convection.jld2")
+iteration = floor(Int, end_time / Δt / 120)
+jldcallback = JLD2State(iteration = iteration, filepath = "baroclinic_states.jld2")
 callbacks = (Info(), StateCheck(10), jldcallback)
-callbacks = (Info(), StateCheck(10))
+# callbacks = (Info(), StateCheck(10))
 
 ########
 # Create the things
@@ -140,4 +140,4 @@ cpu_grid = DiscretizedDomain(
     array = Array,
 )
 
-@save "eddying_channel.jld2" ρθ cpu_grid
+@save "baroclinic_adjustment.jld2" ρθ cpu_grid

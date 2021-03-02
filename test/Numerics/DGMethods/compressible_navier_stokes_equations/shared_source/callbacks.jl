@@ -26,7 +26,7 @@ function create_callback(output::JLD2State, simulation::Simulation, odesolver)
     file = jldopen(output.filepath, "a+")
     JLD2.Group(file, "state")
     JLD2.Group(file, "time")
-    file["state"][string(steps)] = Array(Q)
+    file["state"][string(steps)] = Array(Q.ρθ)
     file["time"][string(steps)] = time
     close(file)
 
@@ -38,7 +38,7 @@ function create_callback(output::JLD2State, simulation::Simulation, odesolver)
         time = ClimateMachine.ODESolvers.gettime(odesolver)
         @info steps, time
         file = jldopen(output.filepath, "a+")
-        file["state"][string(steps)] = Array(Q)
+        file["state"][string(steps)] = Array(Q.ρθ)
         file["time"][string(steps)] = time
         close(file)
         return nothing
