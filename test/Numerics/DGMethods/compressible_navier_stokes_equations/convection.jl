@@ -1,7 +1,7 @@
 include("boilerplate.jl")
 include("two_dimensional/TwoDimensionalCompressibleNavierStokesEquations.jl")
 include("three_dimensional/ThreeDimensionalCompressibleNavierStokesEquations.jl")
-ClimateMachine.init()
+ClimateMachine.init(disable_gpu = true)
 
 ########
 # Setup physical and numerical domains
@@ -9,8 +9,8 @@ ClimateMachine.init()
 Ω = Periodic(-100, 100)^2 × Interval(-100, 0)
 grid = DiscretizedDomain(
     Ω,
-    elements = (vertical = 16, horizontal = 16),
-    polynomialorder = (vertical = 3, horizontal = 3),
+    elements = (vertical = 1, horizontal = 1),
+    polynomialorder = (vertical = 1, horizontal = 1),
 )
 
 ########
@@ -65,8 +65,8 @@ numerics = (; flux, overintegration)
 ########
 
 ρ₀(x, y, z, p) = p.ρₒ * ( 1 +  ( p.α * p.g / p.cᶻ^2) * z^2 / (2 * p.Lz))
-ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0 
-ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
+ρu₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(2π*y/p.Ly)*sin(2π*z/p.Lz) 
+ρv₀(x, y, z, p) = ρ₀(x, y, z, p) * p.ϵ * sin(2π*x/p.Lx)*sin(2π*z/p.Lz)
 ρw₀(x, y, z, p) = ρ₀(x, y, z, p) * 0.0
 ρθ₀(x, y, z, p) = ρ₀(x, y, z, p) * (z / p.Lz )
 
@@ -82,7 +82,7 @@ start_time = 0
 end_time = 0.5days
 method = SSPRK22Heuns
 
-Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, cfl = 0.3)
+Δt = calculate_dt(grid, wavespeed = parameters.cᶻ, cfl = 0.2)
 
 ########
 # Define callbacks
